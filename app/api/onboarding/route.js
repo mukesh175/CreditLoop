@@ -40,13 +40,26 @@ export const POST = withErrorHandling(async (request) => {
       syncCustomers({ shop: shopRecord, session, maxPages: 3 }),
       syncCreditBalances({ shop: shopRecord, session, limit: 50 }),
     ]);
+    const pendingApproval = webhooks
+      .filter((w) => w.status === 'NEEDS_PROTECTED_DATA_APPROVAL')
+      .map((w) => w.topic);
+
     return ok({
       sync: {
         shop: true,
-        webhooks: webhooks.filter((w) => w.status !== 'FAILED').length,
+        webhooks: webhooks.filter((w) => w.status === 'REGISTERED' || w.status === 'ALREADY_REGISTERED').length,
         customers: customers.synced,
         creditBalances: balances.updated,
       },
+      // Not an error — the app works, but these topics stay dormant until the
+      // Partner dashboard grants protected customer data access.
+      pendingApproval: pendingApproval.length
+        ? {
+            topics: pendingApproval,
+            message:
+              'These webhooks are waiting on protected customer data approval for your app. Request it in your Partner dashboard under App setup > Protected customer data access, then run the sync again.',
+          }
+        : null,
     });
   }
 

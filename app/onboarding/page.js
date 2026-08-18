@@ -23,6 +23,7 @@ function Onboarding() {
     customerCreditReminder: false,
   });
   const [sync, setSync] = useState(null);
+  const [pendingApproval, setPendingApproval] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -42,6 +43,7 @@ function Onboarding() {
           body: { action: 'sync' },
         });
         setSync(result.sync);
+        setPendingApproval(result.pendingApproval || null);
       }
       if (step === 5) {
         await apiFetch('/api/onboarding', { method: 'POST', body: { done: true } });
@@ -220,6 +222,25 @@ function Onboarding() {
                     <li>✓ {sync.creditBalances} store credit balances read from Shopify</li>
                   </ul>
                 )}
+                {pendingApproval && (
+                  <div
+                    className="p-3 mb-3"
+                    style={{
+                      background: 'var(--cl-warning-soft)',
+                      border: '1px solid #f0d89a',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      color: 'var(--cl-warning)',
+                    }}
+                  >
+                    <strong className="d-block mb-1">Some webhooks are waiting on approval</strong>
+                    {pendingApproval.message}
+                    <div className="mt-2">
+                      <code style={{ fontSize: 12 }}>{pendingApproval.topics.join(', ')}</code>
+                    </div>
+                  </div>
+                )}
+
                 <p className="cl-source-note mb-0">
                   Your credit rules were created as drafts. Review them in Settings → Credit Rules
                   before enabling — nothing is offered to customers until you do.

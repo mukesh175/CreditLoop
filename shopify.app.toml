@@ -29,32 +29,21 @@ api_version = "2025-10"
   customer_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/customers-redact"
   shop_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/shop-redact"
 
-  # Application topics. The orders/* and customers/* topics carry protected
-  # customer data and require approval in the Partner dashboard before a
-  # version can be released (App setup -> Protected customer data access).
+  # Only app/uninstalled is declared here. The orders/*, refunds/create and
+  # customers/* topics carry protected customer data, and Shopify refuses to
+  # create an app version that declares them until the app is approved for it
+  # (Partner dashboard -> App setup -> Protected customer data access).
+  #
+  # CreditLoop registers those topics at runtime instead, from the OAuth
+  # callback and the onboarding sync (lib/shopify/webhooks.js), so the app is
+  # fully functional once approval is granted — with no redeploy needed.
+  #
+  # After approval you may move them back here if you prefer declarative
+  # webhooks; the runtime registration is idempotent and will skip any topic
+  # Shopify already has registered.
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
   uri = "/api/webhooks/app-uninstalled"
-
-  [[webhooks.subscriptions]]
-  topics = [ "orders/create" ]
-  uri = "/api/webhooks/orders-create"
-
-  [[webhooks.subscriptions]]
-  topics = [ "orders/updated" ]
-  uri = "/api/webhooks/orders-updated"
-
-  [[webhooks.subscriptions]]
-  topics = [ "refunds/create" ]
-  uri = "/api/webhooks/refunds-create"
-
-  [[webhooks.subscriptions]]
-  topics = [ "customers/create" ]
-  uri = "/api/webhooks/customers-create"
-
-  [[webhooks.subscriptions]]
-  topics = [ "customers/update" ]
-  uri = "/api/webhooks/customers-update"
 
 [pos]
 embedded = false

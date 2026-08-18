@@ -323,11 +323,33 @@ following topic is invalid":
 
 ### Protected customer data approval
 
-The `orders/*` and `customers/*` topics carry protected customer data.
-**`shopify app deploy` fails until the app is approved for it** — "This app is
-not approved to subscribe to webhook topics containing protected customer
-data". Request access in the Partner dashboard under **App setup → Protected
-customer data access** before releasing a version. See §4.
+The `orders/*`, `refunds/create` and `customers/*` topics carry protected
+customer data. Shopify refuses to create an app version that **declares** them
+before the app is approved:
+
+> This app is not approved to subscribe to webhook topics containing protected
+> customer data.
+
+So `shopify.app.toml` declares only `app/uninstalled`. CreditLoop registers the
+rest **at runtime** — from the OAuth callback and the onboarding sync
+(`lib/shopify/webhooks.js`) — which keeps `shopify app deploy` working before
+approval comes through.
+
+Until access is granted those registrations are rejected, and the app reports
+that plainly instead of failing silently: the onboarding sync shows which topics
+are waiting, and the registration result marks them
+`NEEDS_PROTECTED_DATA_APPROVAL`. Everything else works; those topics simply stay
+dormant.
+
+**To grant access:** Partner dashboard → your app → **App setup → Protected
+customer data access**. Request *Protected customer data*, plus the **Name** and
+**Email** fields, and complete the data-use questionnaire. Then reinstall the
+app (or re-run the onboarding sync) so registration retries — no redeploy
+needed.
+
+Once approved you may move the topics back into `shopify.app.toml` if you prefer
+declarative webhooks. The runtime registration is idempotent and skips any topic
+Shopify already has.
 
 Every handler, via `lib/shopify/webhook-handler.js`:
 

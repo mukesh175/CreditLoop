@@ -474,26 +474,74 @@ in-memory queues, a pooled database connection and batched cron work.
 
 ## 17. Vercel Cron
 
-Declared in `vercel.json`:
+**Vercel's Hobby plan allows each cron job to fire at most once per day (and at
+most two jobs per project).** The shipped `vercel.json` therefore schedules a
+single consolidated endpoint:
 
-| Schedule | Endpoint | Purpose |
+```json
+{
+  "crons": [
+    { "path": "/api/cron/daily", "schedule": "0 9 * * *" }
+  ]
+}
+```
+
+`/api/cron/daily` runs all scheduled work in one invocation, in dependency
+order, under a 50-second budget:
+
+| Order | Task | Notes |
 | --- | --- | --- |
-| Every 4 hours | `/api/cron/sync-credit` | Refresh cached Shopify balances and customer metrics |
-| Daily 01:15 UTC | `/api/cron/daily-metrics` | Snapshot yesterday's metrics per currency |
-| Daily 10:00 UTC | `/api/cron/process-campaigns` | Run active campaigns in batches |
-| Daily 02:30 UTC | `/api/cron/reconcile` | Compare Shopify balances against the ledger |
-| Mondays 09:00 UTC | `/api/cron/weekly-report` | Email the merchant weekly report |
+| 1 | `sync-credit` | Refresh cached Shopify balances and customer metrics — everything below reads what this writes |
+| 2 | `daily-metrics` | Snapshot yesterday's metrics per currency |
+| 3 | `process-campaigns` | Run active campaigns in batches |
+| 4 | `reconcile` | Compare Shopify balances against the ledger |
+| 5 | `weekly-report` | Self-skips unless it is Monday; deduped per ISO week |
 
-Every endpoint requires `Authorization: Bearer $CRON_SECRET` and every job is
-idempotent — re-running one produces no duplicate credit, emails or metrics.
+If a task throws, the remaining tasks still run. If the time budget runs out,
+the leftovers are reported as `deferred` rather than half-executed — every task
+is idempotent, so the next day's run picks them up cleanly.
 
-Test one manually:
+### Upgrading to Pro
+
+On Pro you can schedule the individual endpoints as often as you like. Each task
+still has its own route, so switching is a `vercel.json` change only — no code
+changes:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/sync-credit", "schedule": "0 */4 * * *" },
+    { "path": "/api/cron/daily-metrics", "schedule": "15 1 * * *" },
+    { "path": "/api/cron/process-campaigns", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/reconcile", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" }
+  ]
+}
+```
+
+More frequent syncing mainly buys fresher cached balances on the dashboard. It
+does not affect correctness: balances shown as "Shopify balance" are always read
+live, and cached figures always display their sync time.
+
+### Running a job manually
+
+Every endpoint requires `Authorization: Bearer $CRON_SECRET`:
 
 ```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-app.vercel.app/api/cron/daily
 curl -H "Authorization: Bearer $CRON_SECRET" https://your-app.vercel.app/api/cron/sync-credit
 ```
 
----
+Calling `/api/cron/weekly-report` directly forces a run regardless of weekday;
+the send is still deduped per week, so it cannot email the same report twice.
+
+### Function duration
+
+The tasks batch their work — 25 shops per run, bounded Shopify pagination, 25
+recipients per campaign — to stay within the Hobby plan's 60-second function
+limit. A larger install base needs either Pro (longer `maxDuration` and separate
+schedules) or a smaller per-run batch size; both are constants at the top of
+`lib/cron/tasks.js`.
 
 ## 18. Shopify App Pricing
 

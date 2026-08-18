@@ -1,0 +1,11 @@
+{
+  "name": "creditloop-customer-credit",
+  "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@shopify/ui-extensions": "unstable",
+    "@shopify/ui-extensions-react": "unstable",
+    "react": "^18.2.0"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+.env*.local
+.vercel
+.DS_Store
+*.log
+extensions/*/node_modules/
+extensions/*/dist/
+.shopify/
+coverage/
+/lib/generated/

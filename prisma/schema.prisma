@@ -1,0 +1,565 @@
+// CreditLoop — Prisma schema (Neon PostgreSQL)
+//
+// IMPORTANT FINANCIAL RULE
+// ------------------------
+// This database is NOT the source of truth for customer store-credit balances.
+// Shopify's native StoreCreditAccount balance is authoritative. Everything here
+// is analytics, attribution, configuration and audit data.
+//
+// Never compute a customer balance as (credits - debits) from these tables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Shop / session
+// ---------------------------------------------------------------------------
+
+model Shop {
+  id                String    @id @default(cuid())
+  domain            String    @unique // foo.myshopify.com
+  shopifyShopGid    String?   @unique // gid://shopify/Shop/123
+  name              String?
+  email             String?
+  currencyCode      String    @default("USD")
+  scopes            String?
+  installedAt       DateTime  @default(now())
+  uninstalledAt     DateTime?
+  isActive          Boolean   @default(true)
+  onboardingStep    Int       @default(0)
+  onboardingDone    Boolean   @default(false)
+  lastSyncAt        DateTime?
+  lastSyncStatus    String?
+  demoMode          Boolean   @default(false)
+
+  // Billing
+  plan              String    @default("FREE") // FREE | GROWTH | PRO | SCALE
+  billingSubGid     String?
+  billingStatus     String?
+  trialEndsAt       DateTime?
+  billingPeriodStart DateTime?
+
+  // Defaults captured during onboarding
+  defaultBonusPercent Float   @default(10)
+  defaultMaxBonus     Float   @default(25)
+  recommendationsEnabled Boolean @default(true)
+
+  sessions          ShopifySession[]
+  creditRules       CreditRule[]
+  returnEvents      ReturnEvent[]
+  creditEvents      CreditEvent[]
+  campaigns         CreditCampaign[]
+  customerMetrics   CustomerMetric[]
+  creditSnapshots   CustomerCreditSnapshot[]
+  orderAttributions OrderAttribution[]
+  creditAttributions CreditAttribution[]
+  notificationPrefs NotificationPreference?
+  notificationLogs  NotificationLog[]
+  auditLogs         AuditLog[]
+  webhookEvents     WebhookEvent[]
+  dailyMetrics      DailyMetric[]
+  weeklyMetrics     WeeklyMetric[]
+  reconciliations   ReconciliationRecord[]
+  idempotencyKeys   IdempotencyRecord[]
+
+  updatedAt         DateTime  @updatedAt
+
+  @@index([isActive])
+}
+
+model ShopifySession {
+  id           String   @id // Shopify session id
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain   String
+  state        String?
+  isOnline     Boolean  @default(false)
+  scope        String?
+  accessToken  String   // encrypted at rest via lib/crypto
+  expiresAt    DateTime?
+  onlineUserId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([shopDomain])
+}
+
+// ---------------------------------------------------------------------------
+// Credit rules
+// ---------------------------------------------------------------------------
+
+model CreditRule {
+  id                String   @id @default(cuid())
+  shopId            String
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  enabled           Boolean  @default(true)
+  priority          Int      @default(0)
+
+  bonusType         String   @default("PERCENTAGE") // PERCENTAGE | FIXED
+  bonusValue        Float    @default(0)
+  maxBonusAmount    Float?
+  minRefundAmount   Float?
+  customerEligibility String @default("ALL") // ALL | RETURNING | VIP | NEW
+  currencyCode      String?
+
+  startsAt          DateTime?
+  endsAt            DateTime?
+
+  conditions        CreditRuleCondition[]
+  creditEvents      CreditEvent[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([shopId, enabled])
+  @@index([shopId, priority])
+}
+
+model CreditRuleCondition {
+  id        String     @id @default(cuid())
+  ruleId    String
+  rule      CreditRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  field     String     // refundAmount | customerOrderCount | customerLifetimeValue |
+                       // daysSinceLastOrder | averageOrderValue | previousCreditUses | previousReturns
+  operator  String     // gt | gte | lt | lte | eq | neq
+  value     Float
+  createdAt DateTime   @default(now())
+
+  @@index([ruleId])
+}
+
+// ---------------------------------------------------------------------------
+// Returns / credit events
+// ---------------------------------------------------------------------------
+
+model ReturnEvent {
+  id                  String   @id @default(cuid())
+  shopId              String
+  shop                Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderGid            String
+  orderName           String?
+  customerGid         String?
+  returnGid           String?
+  refundGid           String?
+
+  refundAmount        Float
+  currencyCode        String
+  refundMethod        String   @default("PENDING") // PENDING | STORE_CREDIT | ORIGINAL_PAYMENT
+  creditOffered       Float?
+  creditAccepted      Boolean  @default(false)
+  bonusAmount         Float?
+  ruleIdApplied       String?
+  status              String   @default("OPEN") // OPEN | CREDIT_OFFERED | CREDIT_ISSUED | REFUNDED | DISMISSED
+
+  creditEvents        CreditEvent[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([shopId, orderGid, refundGid])
+  @@index([shopId, status])
+  @@index([shopId, createdAt])
+  @@index([customerGid])
+}
+
+/// Non-authoritative audit/analytics ledger of store-credit movements.
+/// NEVER derive a balance from this table — query Shopify instead.
+model CreditEvent {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerGid                 String
+  shopifyStoreCreditAccountId String?
+  shopifyTransactionId        String?  @unique
+  eventType                   String   // CREDIT | DEBIT
+  amount                      Float
+  currencyCode                String
+  source                      String   // RETURN_REFUND | CAMPAIGN | MANUAL | ORDER_REDEMPTION | SYNC
+  orderGid                    String?
+  refundGid                   String?
+  campaignId                  String?
+  ruleId                      String?
+  returnEventId               String?
+  bonusAmount                 Float?
+  expiresAt                   DateTime?
+  metadata                    Json?
+  createdAt                   DateTime @default(now())
+
+  rule        CreditRule?     @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  campaign    CreditCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  returnEvent ReturnEvent?    @relation(fields: [returnEventId], references: [id], onDelete: SetNull)
+  attributions CreditAttribution[]
+
+  @@index([shopId, createdAt])
+  @@index([shopId, customerGid])
+  @@index([shopId, eventType])
+  @@index([shopifyStoreCreditAccountId])
+  @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Campaigns
+// ---------------------------------------------------------------------------
+
+model CreditCampaign {
+  id             String   @id @default(cuid())
+  shopId         String
+  shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name           String
+  type           String   // RETURN_CREDIT | WIN_BACK | VIP
+  status         String   @default("DRAFT") // DRAFT | ACTIVE | PAUSED | COMPLETED
+  description    String?
+
+  // Targeting
+  segment        String   @default("CREDIT_HOLDERS") // see lib/analytics/segments.js
+  minBalance     Float?
+  minDaysInactive Int?
+  minLifetimeValue Float?
+  currencyCode   String?
+
+  // Issuance (only for campaigns that grant credit)
+  grantsCredit   Boolean  @default(false)
+  grantType      String?  // PERCENTAGE | FIXED
+  grantValue     Float?
+  grantMaxAmount Float?
+  grantExpiresInDays Int?
+
+  // Email
+  sendsEmail     Boolean  @default(true)
+  emailTemplate  String?  // credit-issued | credit-reminder | credit-expiring | win-back
+  requiresMarketingConsent Boolean @default(true)
+
+  scheduleCron   String?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  lastRunAt      DateTime?
+
+  recipients     CampaignRecipient[]
+  events         CampaignEvent[]
+  creditEvents   CreditEvent[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([shopId, status])
+  @@index([shopId, type])
+}
+
+model CampaignRecipient {
+  id          String         @id @default(cuid())
+  campaignId  String
+  campaign    CreditCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  shopId      String
+  customerGid String
+  status      String         @default("PENDING") // PENDING | SENT | SKIPPED | FAILED | CONVERTED
+  skipReason  String?
+  creditIssued Float?
+  currencyCode String?
+  sentAt      DateTime?
+  convertedOrderGid String?
+  convertedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([campaignId, customerGid])
+  @@index([shopId, status])
+  @@index([campaignId, status])
+}
+
+model CampaignEvent {
+  id          String         @id @default(cuid())
+  campaignId  String
+  campaign    CreditCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  shopId      String
+  type        String // ACTIVATED | PAUSED | RUN_STARTED | RUN_COMPLETED | ERROR
+  message     String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([campaignId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Customer analytics (no unnecessary PII — Shopify GIDs only)
+// ---------------------------------------------------------------------------
+
+model CustomerMetric {
+  id                String   @id @default(cuid())
+  shopId            String
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerGid       String
+  displayName       String?  // cached for merchant UI only; removed on redact
+  orderCount        Int      @default(0)
+  lifetimeValue     Float    @default(0)
+  currencyCode      String   @default("USD")
+  averageOrderValue Float    @default(0)
+  lastOrderAt       DateTime?
+  firstOrderAt      DateTime?
+  returnCount       Int      @default(0)
+  creditIssuedTotal Float    @default(0)
+  creditRedeemedTotal Float  @default(0)
+  creditUseCount    Int      @default(0)
+  marketingConsent  Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  @@unique([shopId, customerGid])
+  @@index([shopId, lifetimeValue])
+  @@index([shopId, lastOrderAt])
+}
+
+/// Point-in-time cache of the authoritative Shopify balance, used only so the
+/// dashboard does not have to query Shopify for every customer on every load.
+/// Always labelled in the UI with `syncedAt`.
+model CustomerCreditSnapshot {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerGid                 String
+  shopifyStoreCreditAccountId String?
+  balance                     Float    @default(0)
+  currencyCode                String
+  lastCreditAt                DateTime?
+  lastDebitAt                 DateTime?
+  expiresAt                   DateTime?
+  syncedAt                    DateTime @default(now())
+
+  @@unique([shopId, customerGid, currencyCode])
+  @@index([shopId, balance])
+  @@index([shopId, syncedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Attribution
+// ---------------------------------------------------------------------------
+
+model OrderAttribution {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderGid                    String
+  orderName                   String?
+  customerGid                 String?
+  shopifyStoreCreditAccountId String?
+  creditAmountUsed            Float    @default(0)
+  orderTotal                  Float    @default(0)
+  currencyCode                String
+  isRepeatPurchase            Boolean  @default(false)
+  daysSincePreviousOrder      Int?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  attributions CreditAttribution[]
+
+  @@unique([shopId, orderGid])
+  @@index([shopId, createdAt])
+  @@index([shopId, customerGid])
+}
+
+/// Links an issued credit event to the order(s) where credit was later used.
+model CreditAttribution {
+  id                 String   @id @default(cuid())
+  shopId             String
+  shop               Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  creditEventId      String
+  creditEvent        CreditEvent @relation(fields: [creditEventId], references: [id], onDelete: Cascade)
+  orderAttributionId String
+  orderAttribution   OrderAttribution @relation(fields: [orderAttributionId], references: [id], onDelete: Cascade)
+  amountAttributed   Float
+  currencyCode       String
+  daysToRedemption   Int?
+  createdAt          DateTime @default(now())
+
+  @@unique([creditEventId, orderAttributionId])
+  @@index([shopId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model NotificationPreference {
+  id                       String  @id @default(cuid())
+  shopId                   String  @unique
+  shop                     Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  merchantEmail            String?
+
+  weeklyReport             Boolean @default(true)
+  largeCreditIssued        Boolean @default(true)
+  largeCreditThreshold     Float   @default(250)
+  redemptionSpike          Boolean @default(true)
+  expiringCreditSummary    Boolean @default(true)
+
+  customerCreditIssued     Boolean @default(false)
+  customerCreditReminder   Boolean @default(false)
+  customerExpirationReminder Boolean @default(false)
+  customerWinBack          Boolean @default(false)
+
+  reminderAfterDays        Int     @default(30)
+  expiryReminderDays       Int[]   @default([14, 7, 1])
+
+  updatedAt                DateTime @updatedAt
+  createdAt                DateTime @default(now())
+}
+
+model NotificationLog {
+  id            String   @id @default(cuid())
+  shopId        String
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  audience      String   // MERCHANT | CUSTOMER
+  template      String
+  channel       String   @default("EMAIL") // EMAIL | IN_APP
+  recipientHash String?  // sha256(email) — we do not persist customer addresses
+  customerGid   String?
+  campaignId    String?
+  messageId     String?
+  status        String   @default("QUEUED") // QUEUED | SENT | FAILED | SKIPPED
+  error         String?
+  dedupeKey     String?
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([shopId, dedupeKey])
+  @@index([shopId, createdAt])
+  @@index([shopId, status])
+  @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit / webhooks / idempotency
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id                   String   @id @default(cuid())
+  shopId               String
+  shop                 Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  action               String   // RULE_CREATED | CREDIT_ISSUED | REFUND_CREATED | ...
+  actorType            String   @default("MERCHANT") // MERCHANT | SYSTEM | SHOPIFY
+  actorId              String?
+  customerGid          String?
+  orderGid             String?
+  amount               Float?
+  currencyCode         String?
+  shopifyTransactionId String?
+  requestId            String?
+  result               String   @default("SUCCESS") // SUCCESS | FAILURE
+  errorMessage         String?
+  reason               String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([shopId, action])
+  @@index([customerGid])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  shopId      String?
+  shop        Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain  String
+  topic       String
+  webhookId   String   // X-Shopify-Webhook-Id
+  payloadHash String?
+  status      String   @default("RECEIVED") // RECEIVED | PROCESSED | FAILED
+  attempts    Int      @default(0)
+  error       String?
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([webhookId, topic])
+  @@index([shopDomain, topic])
+  @@index([status, createdAt])
+}
+
+/// Guards every financial mutation against duplicate execution.
+model IdempotencyRecord {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  key         String
+  operation   String   // ISSUE_CREDIT | REFUND | DEBIT_CREDIT
+  status      String   @default("IN_PROGRESS") // IN_PROGRESS | SUCCEEDED | FAILED
+  requestHash String?
+  responseJson Json?
+  shopifyTransactionId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, key])
+  @@index([shopId, operation])
+}
+
+// ---------------------------------------------------------------------------
+// Metrics snapshots
+// ---------------------------------------------------------------------------
+
+model DailyMetric {
+  id                   String   @id @default(cuid())
+  shopId               String
+  shop                 Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  date                 DateTime // UTC midnight
+  currencyCode         String
+  creditIssued         Float    @default(0)
+  creditRedeemed       Float    @default(0)
+  bonusIssued          Float    @default(0)
+  outstandingCredit    Float    @default(0)
+  ordersUsingCredit    Int      @default(0)
+  revenueFromCreditOrders Float @default(0)
+  creditOffersUsed     Int      @default(0)
+  returnsOffered       Int      @default(0)
+  returnsAcceptedCredit Int     @default(0)
+  createdAt            DateTime @default(now())
+
+  @@unique([shopId, date, currencyCode])
+  @@index([shopId, date])
+}
+
+model WeeklyMetric {
+  id                   String   @id @default(cuid())
+  shopId               String
+  shop                 Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  weekStart            DateTime
+  currencyCode         String
+  creditIssued         Float    @default(0)
+  creditRedeemed       Float    @default(0)
+  ordersUsingCredit    Int      @default(0)
+  revenueFromCreditOrders Float @default(0)
+  outstandingCredit    Float    @default(0)
+  redemptionRate       Float    @default(0)
+  topCampaignId        String?
+  topSegment           String?
+  reportSentAt         DateTime?
+  createdAt            DateTime @default(now())
+
+  @@unique([shopId, weekStart, currencyCode])
+  @@index([shopId, weekStart])
+}
+
+model ReconciliationRecord {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerGid                 String
+  shopifyStoreCreditAccountId String?
+  shopifyBalance              Float
+  expectedFromEvents          Float
+  difference                  Float
+  currencyCode                String
+  status                      String   @default("OPEN") // OPEN | ACKNOWLEDGED | RESOLVED
+  note                        String?
+  runAt                       DateTime @default(now())
+
+  @@index([shopId, status])
+  @@index([shopId, runAt])
+}

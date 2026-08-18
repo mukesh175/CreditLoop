@@ -1,0 +1,9 @@
+{
+  "crons": [
+    { "path": "/api/cron/sync-credit", "schedule": "0 */4 * * *" },
+    { "path": "/api/cron/daily-metrics", "schedule": "15 1 * * *" },
+    { "path": "/api/cron/process-campaigns", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/reconcile", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" }
+  ]
+}

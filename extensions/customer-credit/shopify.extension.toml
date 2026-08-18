@@ -1,0 +1,23 @@
+api_version = "2025-10"
+
+[[extensions]]
+type = "ui_extension"
+name = "Store credit"
+handle = "customer-credit"
+
+  [[extensions.targeting]]
+  # Full-page block on the customer account order index.
+  target = "customer-account.page.render"
+  module = "./src/CreditPage.jsx"
+
+  [[extensions.targeting]]
+  # Compact balance block on the order index page.
+  target = "customer-account.order-index.block.render"
+  module = "./src/CreditBlock.jsx"
+
+  [extensions.capabilities]
+  api_access = true
+
+  [extensions.capabilities.network_access]
+  # Required to read the balance from the CreditLoop backend.
+  allowed = true

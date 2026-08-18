@@ -1,0 +1,68 @@
+# CreditLoop — Shopify app configuration
+#
+# Verify `api_version` and every scope against the current stable Shopify API
+# release before deploying. See README → "Shopify API version".
+
+name = "CreditLoop"
+handle = "creditloop"
+client_id = "REPLACE_WITH_YOUR_CLIENT_ID"
+application_url = "https://your-app.vercel.app"
+embedded = true
+
+[access_scopes]
+# Minimum scopes for the implemented features. Each is justified in docs/scopes.md
+# and shown to the merchant in Settings → General.
+scopes = "read_orders,write_orders,read_returns,read_customers,read_store_credit_accounts,write_store_credit_account_transactions"
+
+[auth]
+redirect_urls = [
+  "https://your-app.vercel.app/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-10"
+
+  # Mandatory compliance topics for App Store distribution.
+  [[webhooks.subscriptions]]
+  topics = [ "customers/data_request" ]
+  uri = "/api/webhooks/customers-data-request"
+
+  [[webhooks.subscriptions]]
+  topics = [ "customers/redact" ]
+  uri = "/api/webhooks/customers-redact"
+
+  [[webhooks.subscriptions]]
+  topics = [ "shop/redact" ]
+  uri = "/api/webhooks/shop-redact"
+
+  # Application topics.
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/api/webhooks/app-uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/api/webhooks/orders-create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/updated" ]
+  uri = "/api/webhooks/orders-updated"
+
+  [[webhooks.subscriptions]]
+  topics = [ "refunds/create" ]
+  uri = "/api/webhooks/refunds-create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "customers/create" ]
+  uri = "/api/webhooks/customers-create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "customers/update" ]
+  uri = "/api/webhooks/customers-update"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true

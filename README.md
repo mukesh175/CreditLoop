@@ -709,6 +709,20 @@ leverage to prevent a merchant from leaving.
 
 ## 21. Troubleshooting
 
+### Start here: the health endpoint
+
+```bash
+curl https://your-app.vercel.app/api/health
+curl "https://your-app.vercel.app/api/health?secret=$CRON_SECRET"
+```
+
+Public form reports only whether the database answers. With the cron secret it
+adds a configuration checklist — which required environment variables are
+present (never their values), the API version, the app URL and the number of
+installed shops. `"database": "schema_out_of_date"` means migrations have not
+been applied to that environment.
+
+
 **API calls return 401 in the browser**
 The embedded app must run inside the Shopify Admin iframe to get an App Bridge
 session token. Opening the Vercel URL directly will always 401.
@@ -725,9 +739,23 @@ The `write_store_credit_account_transactions` scope is missing, or the staff
 account lacks the store-credit permission in Shopify. Reinstall after changing
 scopes.
 
+**"Something went wrong on our side" / 503 from every dashboard call**
+Almost always the database. Hit `/api/health` (above). The two usual causes are
+`DATABASE_URL` not set for the **Production** environment in Vercel, or
+migrations never applied to the production database:
+
+```bash
+DATABASE_URL="<pooled>" DIRECT_DATABASE_URL="<direct>" npx prisma migrate deploy
+```
+
+Infrastructure failures now report themselves specifically —
+`DATABASE_UNREACHABLE`, `DATABASE_SCHEMA_OUT_OF_DATE` or
+`DATABASE_NOT_CONFIGURED` — rather than a generic message.
+
 **Prisma cannot reach the database from Vercel**
 Use the **pooled** Neon string for `DATABASE_URL`. The direct string is only for
-migrations.
+migrations. Environment variables must be set for the Production environment
+specifically, and Vercel only applies them to builds made after the change.
 
 **Migrations hang**
 `DIRECT_DATABASE_URL` must be the non-pooled connection — Prisma Migrate cannot

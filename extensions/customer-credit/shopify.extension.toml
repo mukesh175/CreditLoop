@@ -11,6 +11,8 @@ type = "ui_extension"
 name = "Store credit"
 handle = "customer-credit"
 
+uid = "ef984ef4-9781-6f71-a6ac-bce8db604870b3b1d178"
+
   [[extensions.targeting]]
   target = "customer-account.order-index.block.render"
   module = "./src/CreditBlock.jsx"

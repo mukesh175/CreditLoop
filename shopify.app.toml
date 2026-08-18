@@ -6,7 +6,7 @@
 name = "CreditLoop"
 handle = "creditloop_app"
 client_id = "48689ca489ce286c6742daabe21c0f2e"
-application_url = "https://credit-loop-xi.vercel.app"
+application_url = "https://credit-loop-drab.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -16,7 +16,7 @@ scopes = "read_orders,write_orders,read_returns,read_customers,read_store_credit
 
 [auth]
 redirect_urls = [
-  "https://credit-loop-xi.vercel.app/api/auth/callback"
+  "https://credit-loop-drab.vercel.app/api/auth/callback"
 ]
 
 [webhooks]
@@ -25,9 +25,9 @@ api_version = "2025-10"
   # Mandatory compliance endpoints for App Store distribution. These are
   # declared as privacy_compliance URLs, not as webhook topic subscriptions.
   [webhooks.privacy_compliance]
-  customer_data_request_url = "https://credit-loop-xi.vercel.app/api/webhooks/customers-data-request"
-  customer_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/customers-redact"
-  shop_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/shop-redact"
+  customer_data_request_url = "https://credit-loop-drab.vercel.app/api/webhooks/customers-data-request"
+  customer_deletion_url = "https://credit-loop-drab.vercel.app/api/webhooks/customers-redact"
+  shop_deletion_url = "https://credit-loop-drab.vercel.app/api/webhooks/shop-redact"
 
   # Only app/uninstalled is declared here. The orders/*, refunds/create and
   # customers/* topics carry protected customer data, and Shopify refuses to

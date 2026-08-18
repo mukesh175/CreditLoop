@@ -4,7 +4,7 @@
 # release before deploying. See README → "Shopify API version".
 
 name = "CreditLoop"
-handle = "creditloop"
+handle = "creditloop_app"
 client_id = "48689ca489ce286c6742daabe21c0f2e"
 application_url = "https://credit-loop-xi.vercel.app"
 embedded = true

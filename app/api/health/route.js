@@ -13,8 +13,16 @@ export const dynamic = 'force-dynamic';
  * nothing else. Pass ?secret=$CRON_SECRET for the configuration checklist,
  * which reports only whether each value is present, never its value.
  */
+/** Strips credentials out of any connection string in an error message. */
+function redactConnectionStrings(message) {
+  return message
+    .replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, 'postgresql://[redacted]')
+    .replace(/password=[^\s&"']+/gi, 'password=[redacted]');
+}
+
 export async function GET(request) {
   const checks = { database: 'unknown' };
+  let databaseError = null;
   let status = 200;
 
   try {
@@ -29,6 +37,12 @@ export async function GET(request) {
         : code === 'P1001' || code === 'P1002'
           ? 'unreachable'
           : 'error';
+    databaseError = {
+      code: code || error?.name || 'UNKNOWN',
+      // Redact anything that looks like a connection string before this is
+      // shown to anyone, even behind the secret.
+      message: redactConnectionStrings(String(error?.message || '')).slice(0, 600),
+    };
     // eslint-disable-next-line no-console
     console.error('[creditloop] health check failed', { code, message: error?.message });
   }
@@ -72,6 +86,7 @@ export async function GET(request) {
       apiVersion: SHOPIFY_API_VERSION,
       appUrl: process.env.SHOPIFY_APP_URL || null,
       installedShops: shops,
+      ...(databaseError ? { databaseError } : {}),
       ...(migrations ? { migrations } : {}),
     },
     { status }

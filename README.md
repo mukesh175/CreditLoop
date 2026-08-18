@@ -186,7 +186,19 @@ npx prisma generate
 npx prisma studio
 ```
 
-For production:
+For production, migrations run automatically as part of the build:
+
+```json
+"build": "prisma generate && prisma migrate deploy && next build"
+```
+
+This guarantees the deployed schema always matches the deployed code — the
+alternative is a build that succeeds while every query fails against tables
+that do not exist yet. It means `DATABASE_URL` and `DIRECT_DATABASE_URL` must be
+available at build time, and a failing migration fails the deploy rather than
+shipping a broken app.
+
+To apply migrations by hand instead:
 
 ```bash
 npx prisma migrate deploy

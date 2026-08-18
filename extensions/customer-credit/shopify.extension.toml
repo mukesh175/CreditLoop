@@ -6,7 +6,7 @@ name = "Store credit"
 handle = "customer-credit"
 
   [[extensions.targeting]]
-  # Full-page block on the customer account order index.
+  # Full credit history page in the customer account.
   target = "customer-account.page.render"
   module = "./src/CreditPage.jsx"
 
@@ -16,8 +16,6 @@ handle = "customer-credit"
   module = "./src/CreditBlock.jsx"
 
   [extensions.capabilities]
-  api_access = true
-
-  [extensions.capabilities.network_access]
-  # Required to read the balance from the CreditLoop backend.
-  allowed = true
+  # Required to read the balance from the CreditLoop backend. The extension does
+  # not use the Customer Account API directly, so `api_access` is not requested.
+  network_access = true

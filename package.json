@@ -33,6 +33,6 @@
   },
   "type": "module",
   "workspaces": [
-    "extensions/*"
+    "extensions-pending-approval/*"
   ]
 }

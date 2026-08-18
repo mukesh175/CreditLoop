@@ -367,6 +367,16 @@ reconciliation (`/api/cron/reconcile`) rather than by inventing a topic.
 
 ## 12. Customer Account UI extension
 
+> **Currently parked in `extensions-pending-approval/`.** Both extensions call
+> the CreditLoop backend, which requires the `network_access` capability, and
+> Shopify refuses to *release* an app version containing an extension whose
+> network access is not yet approved. Because an unreleased version never
+> applies app configuration — including the App URL — leaving them in place
+> blocks the entire app, not just the extensions. See
+> `extensions-pending-approval/README.md` for how to re-enable them once
+> approval lands. The code itself is complete and unmodified.
+
+
 Two extensions, because Shopify does not allow `customer-account.page.render`
 to share an extension with any other target:
 

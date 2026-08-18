@@ -22,20 +22,16 @@ redirect_urls = [
 [webhooks]
 api_version = "2025-10"
 
-  # Mandatory compliance topics for App Store distribution.
-  [[webhooks.subscriptions]]
-  topics = [ "customers/data_request" ]
-  uri = "/api/webhooks/customers-data-request"
+  # Mandatory compliance endpoints for App Store distribution. These are
+  # declared as privacy_compliance URLs, not as webhook topic subscriptions.
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "https://credit-loop-xi.vercel.app/api/webhooks/customers-data-request"
+  customer_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/customers-redact"
+  shop_deletion_url = "https://credit-loop-xi.vercel.app/api/webhooks/shop-redact"
 
-  [[webhooks.subscriptions]]
-  topics = [ "customers/redact" ]
-  uri = "/api/webhooks/customers-redact"
-
-  [[webhooks.subscriptions]]
-  topics = [ "shop/redact" ]
-  uri = "/api/webhooks/shop-redact"
-
-  # Application topics.
+  # Application topics. The orders/* and customers/* topics carry protected
+  # customer data and require approval in the Partner dashboard before a
+  # version can be released (App setup -> Protected customer data access).
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
   uri = "/api/webhooks/app-uninstalled"

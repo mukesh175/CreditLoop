@@ -309,9 +309,25 @@ Registered automatically after OAuth and declared in `shopify.app.toml`:
 | `customers/create` | `/api/webhooks/customers-create` | Seeds customer metrics |
 | `customers/update` | `/api/webhooks/customers-update` | Keeps marketing consent current |
 | `app/uninstalled` | `/api/webhooks/app-uninstalled` | Stops processing, pauses campaigns, deletes tokens |
-| `customers/data_request` | `/api/webhooks/customers-data-request` | GDPR data export |
-| `customers/redact` | `/api/webhooks/customers-redact` | GDPR customer deletion |
-| `shop/redact` | `/api/webhooks/shop-redact` | GDPR shop deletion |
+
+The three GDPR endpoints are **not** webhook topic subscriptions. They are
+declared under `[webhooks.privacy_compliance]` in `shopify.app.toml` as full
+URLs — listing them as `topics` makes Shopify reject the version with "The
+following topic is invalid":
+
+| Field | Handler |
+| --- | --- |
+| `customer_data_request_url` | `/api/webhooks/customers-data-request` |
+| `customer_deletion_url` | `/api/webhooks/customers-redact` |
+| `shop_deletion_url` | `/api/webhooks/shop-redact` |
+
+### Protected customer data approval
+
+The `orders/*` and `customers/*` topics carry protected customer data.
+**`shopify app deploy` fails until the app is approved for it** — "This app is
+not approved to subscribe to webhook topics containing protected customer
+data". Request access in the Partner dashboard under **App setup → Protected
+customer data access** before releasing a version. See §4.
 
 Every handler, via `lib/shopify/webhook-handler.js`:
 
@@ -329,10 +345,13 @@ reconciliation (`/api/cron/reconcile`) rather than by inventing a topic.
 
 ## 12. Customer Account UI extension
 
-Located in `extensions/customer-credit/`. Two targets:
+Two extensions, because Shopify does not allow `customer-account.page.render`
+to share an extension with any other target:
 
-- `customer-account.order-index.block.render` — a compact balance card
-- `customer-account.page.render` — a full credit-history page
+| Directory | Target | What the customer sees |
+| --- | --- | --- |
+| `extensions/customer-credit` | `customer-account.order-index.block.render` | A compact balance card on the order index |
+| `extensions/customer-credit-page` | `customer-account.page.render` | A full credit-history page |
 
 It is built on the current extension model: **Preact plus Shopify's `s-*` web
 components**, from `@shopify/ui-extensions` at API version `2026-07`. The older

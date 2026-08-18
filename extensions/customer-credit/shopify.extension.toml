@@ -1,7 +1,8 @@
-# Customer Account UI extension — "Your store credit"
+# Customer Account UI extension — store credit card on the order index.
 #
-# Targets and component set verified against @shopify/ui-extensions 2026-07.
-# Customer account extensions require the new customer accounts experience.
+# `customer-account.page.render` cannot share an extension with any other
+# target, so the full credit-history page lives in its own extension:
+# extensions/customer-credit-page.
 
 api_version = "2026-07"
 
@@ -11,12 +12,6 @@ name = "Store credit"
 handle = "customer-credit"
 
   [[extensions.targeting]]
-  # Full credit history page in the customer account.
-  target = "customer-account.page.render"
-  module = "./src/CreditPage.jsx"
-
-  [[extensions.targeting]]
-  # Compact balance card on the order index.
   target = "customer-account.order-index.block.render"
   module = "./src/CreditBlock.jsx"
 

@@ -6,7 +6,7 @@
 name = "CreditLoop"
 handle = "creditloop"
 client_id = "48689ca489ce286c6742daabe21c0f2e"
-application_url = "https://ycredit-loop-xi.vercel.app"
+application_url = "https://credit-loop-xi.vercel.app"
 embedded = true
 
 [access_scopes]

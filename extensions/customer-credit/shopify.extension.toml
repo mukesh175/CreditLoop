@@ -1,4 +1,9 @@
-api_version = "2025-10"
+# Customer Account UI extension — "Your store credit"
+#
+# Targets and component set verified against @shopify/ui-extensions 2026-07.
+# Customer account extensions require the new customer accounts experience.
+
+api_version = "2026-07"
 
 [[extensions]]
 type = "ui_extension"
@@ -11,11 +16,11 @@ handle = "customer-credit"
   module = "./src/CreditPage.jsx"
 
   [[extensions.targeting]]
-  # Compact balance block on the order index page.
+  # Compact balance card on the order index.
   target = "customer-account.order-index.block.render"
   module = "./src/CreditBlock.jsx"
 
   [extensions.capabilities]
   # Required to read the balance from the CreditLoop backend. The extension does
-  # not use the Customer Account API directly, so `api_access` is not requested.
+  # not query the Customer Account API directly, so `api_access` is not requested.
   network_access = true

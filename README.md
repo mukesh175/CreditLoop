@@ -334,8 +334,21 @@ Located in `extensions/customer-credit/`. Two targets:
 - `customer-account.order-index.block.render` — a compact balance card
 - `customer-account.page.render` — a full credit-history page
 
+It is built on the current extension model: **Preact plus Shopify's `s-*` web
+components**, from `@shopify/ui-extensions` at API version `2026-07`. The older
+`@shopify/ui-extensions-react` wrapper is not used — that package stopped
+publishing version tags after `2025-07`, while `@shopify/ui-extensions` tracks
+current API versions.
+
+Extension dependencies install from the repo root via npm workspaces
+(`"workspaces": ["extensions/*"]` in the root `package.json`), so a plain
+`npm install` is enough before `shopify app deploy`. Installing only the root
+package without the workspace entry is what causes
+`Could not resolve "@shopify/ui-extensions/..."` at bundle time.
+
 ```bash
-shopify app deploy    # builds and deploys the extension
+npm install          # installs root + extension dependencies
+shopify app deploy   # builds and deploys the extension
 ```
 
 The extension requires the **new customer accounts** experience. It reads from
@@ -346,7 +359,13 @@ so one customer cannot read another's balance.
 The extension is branded as the merchant's store credit, not as CreditLoop. The
 customer is dealing with the store they bought from.
 
----
+### Verifying the bundle without deploying
+
+```bash
+npx esbuild extensions/customer-credit/src/CreditBlock.jsx \
+  --bundle --format=esm --jsx=automatic --jsx-import-source=preact \
+  --outdir=/tmp/creditloop-bundle-check
+```
 
 ## 13. Store Credit API
 

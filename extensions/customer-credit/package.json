@@ -4,8 +4,8 @@
   "private": true,
   "license": "UNLICENSED",
   "dependencies": {
-    "@shopify/ui-extensions": "unstable",
-    "@shopify/ui-extensions-react": "unstable",
-    "react": "^18.2.0"
+    "@shopify/ui-extensions": "2026.7.1",
+    "preact": "^10.26.4",
+    "@preact/signals": "^2.0.1"
   }
 }

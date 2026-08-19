@@ -739,8 +739,17 @@ been applied to that environment.
 The embedded app must run inside the Shopify Admin iframe to get an App Bridge
 session token. Opening the Vercel URL directly will always 401.
 
-**"This store is not connected to CreditLoop"**
-The offline session is missing — reinstall via `/api/auth/login?shop=…`.
+**"This store has not completed installation"**
+No `Shop` record exists for the store, or its access token is gone. The
+embedded app detects this and sends the merchant through OAuth automatically
+(breaking out of the admin iframe, which OAuth requires). To trigger it by
+hand:
+
+```
+https://your-app.vercel.app/api/auth/login?shop=your-store.myshopify.com
+```
+
+Or install from the Partner dashboard → **Test your app**.
 
 **Webhooks return 401**
 `SHOPIFY_API_SECRET` does not match the Partner app. The HMAC is computed over

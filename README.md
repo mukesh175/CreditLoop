@@ -286,7 +286,30 @@ the real financial code paths execute end to end. See
 
 ---
 
-## 10. Shopify OAuth
+## 10. Installation and authentication
+
+### Managed installation (default)
+
+New Shopify apps use **managed installation**: Shopify performs the install
+itself and never sends the merchant through the app's OAuth route. There is no
+authorization code to exchange.
+
+Instead, the first authenticated embedded request exchanges the App Bridge
+session token for an Admin API access token
+(`lib/shopify/token-exchange.js`), and `ensureShopInstalled`
+(`lib/shopify/install.js`) completes setup: it stores the encrypted offline
+token, syncs shop identity, registers webhooks, seeds the draft credit rules
+and creates notification preferences.
+
+This means merchants never see an install screen from CreditLoop — the app
+simply works the first time they open it. An app implementing only the legacy
+OAuth routes will report "this store is not installed" forever under managed
+installation, because those routes are never called.
+
+### Legacy OAuth (opt-in)
+
+Still supported for apps configured with `use_legacy_install_flow`, and usable
+by visiting `/api/auth/login?shop=…` directly.
 
 | Route | Purpose |
 | --- | --- |

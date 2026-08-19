@@ -40,6 +40,10 @@ export const PATCH = withErrorHandling(async (request) => {
     if (body[field] !== undefined) data[field] = Boolean(body[field]);
   }
   if (body.merchantEmail !== undefined) data.merchantEmail = body.merchantEmail || null;
+  if (body.emailFromName !== undefined) {
+    const name = String(body.emailFromName || '').replace(/[\r\n"<>]/g, '').trim();
+    data.emailFromName = name ? name.slice(0, 64) : null;
+  }
   if (body.largeCreditThreshold !== undefined) {
     data.largeCreditThreshold = Math.max(0, Number(body.largeCreditThreshold));
   }

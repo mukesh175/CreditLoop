@@ -535,18 +535,19 @@ Customer emails are sent on behalf of the merchant's store:
 
 | Header | Value |
 | --- | --- |
-| `From` display name | The store's name — the customer sees "Acme Store", not CreditLoop |
+| `From` display name | The merchant's brand — **Settings → Notifications → Sender name**, defaulting to the store's name |
 | `From` address | `RESEND_FROM_EMAIL`, on your verified sending domain |
 | `Reply-To` | The store's own email, so replies reach the merchant |
+
+CreditLoop does not put itself in front of anyone: the brand name is used for
+customer campaigns *and* for merchant reports. The literal string "CreditLoop"
+appears only as a last-resort fallback when a store has no name at all.
 
 The address itself cannot be the merchant's own email. Providers only accept
 mail from a domain you have verified, and putting a merchant's address in `From`
 is spoofing — SPF/DKIM/DMARC would reject it or route it to spam. To send from a
 merchant's real domain, verify that domain with Resend and point
 `RESEND_FROM_EMAIL` at it for that deployment.
-
-Merchant-facing mail (the weekly report) is from CreditLoop, since that is who
-it is actually from.
 
 ### Test emails
 

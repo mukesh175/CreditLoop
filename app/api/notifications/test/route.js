@@ -34,10 +34,11 @@ const TEMPLATES = {
       daysRemaining: 7,
     }),
   'win-back': (shop, sample) => winBackEmail({ ...sample, grantedAmount: 15 }),
-  'weekly-report': (shop) =>
+  'weekly-report': (shop, sample) =>
     weeklyReportEmail({
       shopDomain: shop.domain,
       appUrl: APP_URL,
+      brandName: sample.brandName,
       metrics: {
         currencyCode: shop.currencyCode,
         creditIssued: 12400,
@@ -67,9 +68,9 @@ export const POST = withErrorHandling(async (request) => {
     );
   }
 
-  const audience = template === 'weekly-report' ? 'MERCHANT' : 'CUSTOMER';
   const sample = {
-    storeName: shop.name || shop.domain,
+    storeName: prefs?.emailFromName || shop.name || shop.domain,
+    brandName: prefs?.emailFromName || shop.name || null,
     storeUrl: `https://${shop.domain}`,
     amount: 110,
     balance: 110,
@@ -77,16 +78,23 @@ export const POST = withErrorHandling(async (request) => {
   };
 
   const message = build(shop, sample);
-  const sender = buildSender(shop, { audience });
+  const fromName = prefs?.emailFromName || null;
+
+  // Preview with the sender a customer would actually see — the point of the
+  // test is to check that, so it must not be swapped for a merchant sender.
+  const sender = buildSender(shop, { fromName });
 
   const result = await sendEmail({
     shopId: shop.id,
     shop,
+    fromName,
     to: recipient,
     subject: `[Test] ${message.subject}`,
     html: message.html,
     text: message.text,
-    audience: 'MERCHANT', // it goes to the merchant, whichever template it is
+    // Logged as MERCHANT because that is who receives it, whichever template
+    // is being previewed.
+    audience: 'MERCHANT',
     template: `test:${template}`,
     // No dedupe key — a merchant may send as many tests as they like.
   });

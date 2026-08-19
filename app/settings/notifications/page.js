@@ -6,6 +6,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import LoadingCard from '@/components/ui/LoadingCard';
 import { useApi } from '@/lib/client/useApi';
 import { apiFetch } from '@/lib/client/api';
+import { useShop } from '@/components/ui/ShopProvider';
 
 const MERCHANT_ALERTS = [
   ['weeklyReport', 'Weekly credit report'],
@@ -30,6 +31,7 @@ const CUSTOMER_CAMPAIGNS = [
 ];
 
 function NotificationSettings() {
+  const { shop } = useShop();
   const { data, loading, reload } = useApi('/api/notifications/preferences');
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -106,6 +108,24 @@ function NotificationSettings() {
                   onChange={(e) => setForm({ ...form, merchantEmail: e.target.value })}
                   placeholder="you@yourstore.com"
                 />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label fw-semibold" htmlFor="from-name">
+                  Sender name
+                </label>
+                <input
+                  id="from-name"
+                  className="form-control"
+                  value={form.emailFromName || ''}
+                  onChange={(e) => setForm({ ...form, emailFromName: e.target.value })}
+                  placeholder={shop?.name || 'Your store name'}
+                  maxLength={64}
+                />
+                <div className="cl-source-note mt-1">
+                  The name customers see in their inbox. Defaults to your store name
+                  {shop?.name ? ` ("${shop.name}")` : ''}. Replies go to the address above.
+                </div>
               </div>
 
               {MERCHANT_ALERTS.map(([key, label]) => (

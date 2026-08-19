@@ -14,6 +14,14 @@ const MERCHANT_ALERTS = [
   ['expiringCreditSummary', 'Expiring credit summary'],
 ];
 
+const TEST_TEMPLATES = [
+  ['credit-reminder', 'Credit reminder'],
+  ['credit-issued', 'Credit issued'],
+  ['credit-expiring', 'Credit expiring'],
+  ['win-back', 'Win-back'],
+  ['weekly-report', 'Weekly report (merchant)'],
+];
+
 const CUSTOMER_CAMPAIGNS = [
   ['customerCreditIssued', 'Credit issued'],
   ['customerCreditReminder', 'Credit reminder'],
@@ -27,6 +35,27 @@ function NotificationSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [testTemplate, setTestTemplate] = useState('credit-reminder');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [testError, setTestError] = useState(null);
+
+  async function sendTest() {
+    setTesting(true);
+    setTestError(null);
+    setTestResult(null);
+    try {
+      const result = await apiFetch('/api/notifications/test', {
+        method: 'POST',
+        body: { template: testTemplate, to: form.merchantEmail || undefined },
+      });
+      setTestResult(result);
+    } catch (err) {
+      setTestError(err.message);
+    } finally {
+      setTesting(false);
+    }
+  }
 
   useEffect(() => {
     if (data?.preferences && !form) setForm(data.preferences);
@@ -169,6 +198,71 @@ function NotificationSettings() {
       <button type="button" className="btn btn-cl-primary mt-3" onClick={save} disabled={saving}>
         {saving ? 'Saving…' : 'Save notification settings'}
       </button>
+
+      <div className="cl-card mt-4">
+        <div className="cl-card-header">
+          <h2 className="cl-card-title">Send a test email</h2>
+          <span className="cl-source-note">Always sent to you, never to a customer</span>
+        </div>
+        <div className="cl-card-body">
+          <p className="cl-source-note">
+            See exactly what a customer receives — sender name, reply-to address, wording and
+            layout — before enabling a campaign that emails your customers. Sample amounts are
+            used.
+          </p>
+
+          <div className="d-flex flex-wrap gap-2 align-items-end">
+            <div style={{ minWidth: 220 }}>
+              <label className="form-label cl-source-note mb-1" htmlFor="test-template">
+                Template
+              </label>
+              <select
+                id="test-template"
+                className="form-select form-select-sm"
+                value={testTemplate}
+                onChange={(e) => setTestTemplate(e.target.value)}
+              >
+                {TEST_TEMPLATES.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-cl-secondary btn-sm"
+              onClick={sendTest}
+              disabled={testing || !form.merchantEmail}
+            >
+              {testing ? 'Sending…' : 'Send test email'}
+            </button>
+          </div>
+
+          {!form.merchantEmail && (
+            <p className="cl-source-note mt-2 mb-0">
+              Add an email address above and save before sending a test.
+            </p>
+          )}
+
+          {testError && (
+            <div className="alert alert-danger mt-3 mb-0" style={{ fontSize: 14 }}>
+              {testError}
+            </div>
+          )}
+
+          {testResult && (
+            <div className="alert alert-success mt-3 mb-0" style={{ fontSize: 14 }}>
+              <strong className="d-block mb-1">Test sent to {testResult.to}</strong>
+              <div className="cl-source-note">
+                From: {testResult.sender?.from || '—'}
+                {testResult.sender?.replyTo ? ` · Reply-to: ${testResult.sender.replyTo}` : ''}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }

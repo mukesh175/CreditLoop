@@ -529,6 +529,32 @@ Templates live in `lib/email/`:
 | `win-back.js` | Your store credit is waiting |
 | `weekly-report.js` | CreditLoop weekly report (merchant) |
 
+### Sender identity
+
+Customer emails are sent on behalf of the merchant's store:
+
+| Header | Value |
+| --- | --- |
+| `From` display name | The store's name — the customer sees "Acme Store", not CreditLoop |
+| `From` address | `RESEND_FROM_EMAIL`, on your verified sending domain |
+| `Reply-To` | The store's own email, so replies reach the merchant |
+
+The address itself cannot be the merchant's own email. Providers only accept
+mail from a domain you have verified, and putting a merchant's address in `From`
+is spoofing — SPF/DKIM/DMARC would reject it or route it to spam. To send from a
+merchant's real domain, verify that domain with Resend and point
+`RESEND_FROM_EMAIL` at it for that deployment.
+
+Merchant-facing mail (the weekly report) is from CreditLoop, since that is who
+it is actually from.
+
+### Test emails
+
+**Settings → Notifications → Send a test email** sends any template to the
+merchant's own address with sample figures, so they can check the sender name,
+reply-to and wording before enabling a campaign. It is always addressed to the
+merchant — there is no path that mails a real customer from this button.
+
 Every send is recorded in `NotificationLog` with `messageId`, `status`, `sentAt`,
 `error` and a **hash** of the recipient. CreditLoop does not keep a permanent
 copy of customer email addresses — they are fetched from Shopify at send time
@@ -813,6 +839,13 @@ A difference means store credit moved outside CreditLoop — a manual admin
 adjustment, a Flow action or another app. That is legitimate. CreditLoop reports
 it and never "corrects" a Shopify balance on its own. Review the customer in
 Shopify and acknowledge the record.
+
+**Customers or orders are missing from the dashboard**
+Two causes. First, order and customer webhooks require protected customer data
+approval (§11) — until then Shopify rejects the subscriptions and no new data
+arrives. Second, webhooks only cover activity *after* install, so existing
+history needs a backfill: **Settings → General → Sync now**, which pulls
+customers, orders and balances. The scheduled sync does the same every day.
 
 **Emails are logged as `SKIPPED`**
 Either `RESEND_API_KEY`/`RESEND_FROM_EMAIL` are unset, or the customer lacks

@@ -22,6 +22,27 @@ function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+  const [syncError, setSyncError] = useState(null);
+
+  async function runSync() {
+    setSyncing(true);
+    setSyncError(null);
+    setSyncResult(null);
+    try {
+      const result = await apiFetch('/api/onboarding', {
+        method: 'POST',
+        body: { action: 'sync' },
+      });
+      setSyncResult(result);
+      reload();
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   useEffect(() => {
     if (data?.shop && !form) {
@@ -159,6 +180,63 @@ function SettingsView() {
               </dl>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="cl-card mt-3">
+        <div className="cl-card-header">
+          <h2 className="cl-card-title">Sync with Shopify</h2>
+          <button
+            type="button"
+            className="btn btn-cl-secondary btn-sm"
+            onClick={runSync}
+            disabled={syncing}
+          >
+            {syncing ? 'Syncing…' : 'Sync now'}
+          </button>
+        </div>
+        <div className="cl-card-body">
+          <p className="cl-source-note mb-0">
+            Pulls customers, orders and store credit balances from Shopify. Webhooks keep things
+            current afterwards, but a manual sync is useful after installing, after being granted
+            protected customer data access, or if figures look stale.
+          </p>
+
+          {syncError && (
+            <div className="alert alert-danger mt-3 mb-0" style={{ fontSize: 14 }}>
+              {syncError}
+            </div>
+          )}
+
+          {syncResult && (
+            <div className="alert alert-success mt-3 mb-0" style={{ fontSize: 14 }}>
+              <strong className="d-block mb-1">Sync complete</strong>
+              {syncResult.sync.customers} customers · {syncResult.sync.orders} orders (
+              {syncResult.sync.ordersUsingCredit} using credit) ·{' '}
+              {syncResult.sync.creditBalances} credit balances · {syncResult.sync.webhooks} webhooks
+            </div>
+          )}
+
+          {syncResult?.pendingApproval && (
+            <div
+              className="p-3 mt-3"
+              style={{
+                background: 'var(--cl-warning-soft)',
+                border: '1px solid #f0d89a',
+                borderRadius: 10,
+                fontSize: 13,
+                color: 'var(--cl-warning)',
+              }}
+            >
+              <strong className="d-block mb-1">Some data cannot sync yet</strong>
+              {syncResult.pendingApproval.message}
+              <div className="mt-2">
+                <code style={{ fontSize: 12 }}>
+                  {syncResult.pendingApproval.topics.join(', ')}
+                </code>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

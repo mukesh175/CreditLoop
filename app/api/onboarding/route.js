@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma/client';
 import { withErrorHandling, ok, readJson } from '@/lib/api/respond';
 import { requireShop } from '@/lib/shopify/auth-guard';
-import { syncShopInfo, syncCustomers, syncCreditBalances } from '@/lib/credit/sync';
+import { syncShopInfo, syncCustomers, syncOrders, syncCreditBalances } from '@/lib/credit/sync';
 import { registerWebhooks } from '@/lib/shopify/webhooks';
 import { recordAudit, AUDIT } from '@/lib/util/audit';
 
@@ -35,9 +35,10 @@ export const POST = withErrorHandling(async (request) => {
 
   if (body.action === 'sync') {
     const shopRecord = await syncShopInfo({ shop, session });
-    const [webhooks, customers, balances] = await Promise.all([
+    const [webhooks, customers, orders, balances] = await Promise.all([
       registerWebhooks({ session }),
       syncCustomers({ shop: shopRecord, session, maxPages: 3 }),
+      syncOrders({ shop: shopRecord, session, maxPages: 3 }),
       syncCreditBalances({ shop: shopRecord, session, limit: 50 }),
     ]);
     const pendingApproval = webhooks
@@ -49,6 +50,8 @@ export const POST = withErrorHandling(async (request) => {
         shop: true,
         webhooks: webhooks.filter((w) => w.status === 'REGISTERED' || w.status === 'ALREADY_REGISTERED').length,
         customers: customers.synced,
+        orders: orders.synced,
+        ordersUsingCredit: orders.withCredit,
         creditBalances: balances.updated,
       },
       // Not an error — the app works, but these topics stay dormant until the

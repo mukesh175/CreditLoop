@@ -9,10 +9,10 @@ export const metadata = {
 // Fill these in before publishing. Shopify requires a reachable privacy policy
 // URL and a working contact address for data requests.
 const OPERATOR = {
-  legalName: '[YOUR LEGAL ENTITY NAME]',
-  contactEmail: '[privacy@yourdomain.com]',
-  address: '[YOUR REGISTERED ADDRESS]',
-  jurisdiction: '[YOUR COUNTRY / STATE]',
+  legalName: 'Enigma NXt',
+  contactEmail: '[info@enigmadigital.in]',
+  address: 'Kisan Nagar, No 2 Thane, Wagle I.e., Thane, Thane, Maharashtra, India, 400604',
+  jurisdiction: 'India',
 };
 
 const EFFECTIVE_DATE = 'August 19, 2026';

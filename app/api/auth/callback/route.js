@@ -31,8 +31,13 @@ export async function GET(request) {
     return NextResponse.json({ ok: false, error: 'OAuth state mismatch.' }, { status: 401 });
   }
 
-  const { accessToken, scope } = await exchangeCodeForToken(shop, code);
-  const shopRecord = await storeOfflineSession({ shopDomain: shop, accessToken, scope });
+  const { accessToken, scope, expiresAt } = await exchangeCodeForToken(shop, code);
+  const shopRecord = await storeOfflineSession({
+    shopDomain: shop,
+    accessToken,
+    scope,
+    expiresAt,
+  });
 
   // Post-install setup. Failures here must not block the merchant from landing
   // in the app — the onboarding sync step retries them.

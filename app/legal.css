@@ -1,0 +1,27 @@
+/* Public legal pages — readable, printable, no app chrome. */
+.cl-legal {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 24px 96px;
+  color: var(--cl-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.cl-legal h1 { font-size: 32px; margin-bottom: 8px; }
+.cl-legal h2 { font-size: 21px; margin-top: 40px; margin-bottom: 12px; }
+.cl-legal h3 { font-size: 17px; margin-top: 26px; margin-bottom: 8px; }
+.cl-legal p, .cl-legal li { color: var(--cl-body); }
+.cl-legal ul { padding-left: 22px; }
+.cl-legal li { margin-bottom: 7px; }
+.cl-legal table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 15px; }
+.cl-legal th, .cl-legal td {
+  text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--cl-border); vertical-align: top;
+}
+.cl-legal th { color: var(--cl-navy); font-weight: 650; }
+.cl-legal .cl-legal-meta { color: var(--cl-muted); font-size: 14px; margin-bottom: 32px; }
+.cl-legal .cl-legal-note {
+  background: var(--cl-green-soft); border-radius: 10px; padding: 14px 18px; margin: 20px 0;
+  font-size: 15px;
+}
+.cl-legal a { color: var(--cl-green-dark); }
+@media print { .cl-legal { padding: 0; } }

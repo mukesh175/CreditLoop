@@ -756,6 +756,14 @@ CreditLoop caused the revenue — there is no experimental design behind it.
 | `customers/redact` | Deletes personal data (metrics, snapshots, campaign recipients, recipient hashes). Anonymizes financial records — amounts and Shopify transaction ids are retained for the merchant's accounting, with the customer identifier replaced |
 | `shop/redact` | Deletes the shop and everything cascading from it, including access tokens |
 
+### Policies
+
+| Document | Purpose |
+| --- | --- |
+| `/privacy` (hosted page, `app/privacy/page.js`) | The public privacy policy URL Shopify requires. Fill in the `OPERATOR` details at the top before publishing |
+| [`docs/data-protection.md`](docs/data-protection.md) | What data is processed and why, with code references — answers Shopify's protected customer data questionnaire |
+| [`docs/incident-response.md`](docs/incident-response.md) | Detection, containment, 72-hour notification, contacts. Fill in the bracketed contacts |
+
 ### Data minimization
 
 CreditLoop stores Shopify **customer IDs**, not personal profiles. It keeps a

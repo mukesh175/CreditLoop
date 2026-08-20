@@ -64,9 +64,17 @@ export const POST = withErrorHandling(async (request) => {
     const blocked = [];
     const describe = (label, settled, read) => {
       if (settled.status === 'fulfilled') return read(settled.value);
-      const message = String(settled.reason?.message || settled.reason);
-      if (isProtectedDataError(message)) blocked.push(label);
-      return { error: isProtectedDataError(message) ? 'NEEDS_PROTECTED_DATA_APPROVAL' : message };
+
+      const reason = settled.reason;
+      const message = String(reason?.message || reason);
+      const denied = reason?.code === 'SHOPIFY_ACCESS_DENIED' || isProtectedDataError(message);
+      if (denied) blocked.push(label);
+
+      return {
+        error: denied ? 'NEEDS_PROTECTED_DATA_APPROVAL' : 'FAILED',
+        // Shopify names the missing scope or approval — show it verbatim.
+        detail: message.slice(0, 300),
+      };
     };
 
     const sync = {

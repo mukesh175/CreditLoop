@@ -359,14 +359,24 @@ function SettingsView() {
 
 /** One line of the sync report: a count, or the reason it could not run. */
 function SyncRow({ label, value, suffix }) {
-  const blocked = value && typeof value === 'object' && value.error;
+  const failure = value && typeof value === 'object' && value.error ? value : null;
+  const awaiting = failure?.error === 'NEEDS_PROTECTED_DATA_APPROVAL';
+
   return (
     <tr>
-      <td style={{ paddingLeft: 0 }}>{label}</td>
-      <td className="text-end" style={{ paddingRight: 0 }}>
-        {blocked ? (
-          <span className="cl-pill cl-pill-warning">
-            {value.error === 'NEEDS_PROTECTED_DATA_APPROVAL' ? 'Awaiting approval' : 'Failed'}
+      <td style={{ paddingLeft: 0, verticalAlign: 'top' }}>
+        {label}
+        {/* Shopify's own explanation — it names the missing scope or approval. */}
+        {failure?.detail && (
+          <div className="cl-source-note mt-1" style={{ maxWidth: 520 }}>
+            {failure.detail}
+          </div>
+        )}
+      </td>
+      <td className="text-end" style={{ paddingRight: 0, verticalAlign: 'top' }}>
+        {failure ? (
+          <span className={`cl-pill ${awaiting ? 'cl-pill-warning' : 'cl-pill-danger'}`}>
+            {awaiting ? 'Awaiting approval' : 'Failed'}
           </span>
         ) : (
           <>

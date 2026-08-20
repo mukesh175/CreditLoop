@@ -5,6 +5,7 @@ import { syncShopInfo, syncCustomers, syncOrders, syncCreditBalances } from '@/l
 import { registerWebhooks } from '@/lib/shopify/webhooks';
 import { recordAudit, AUDIT } from '@/lib/util/audit';
 import { SHOPIFY_SCOPES } from '@/lib/config';
+import { AppError } from '@/lib/util/errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -74,11 +75,18 @@ export const POST = withErrorHandling(async (request) => {
       .map((w) => w.topic);
 
     const blocked = [];
+    let staleToken = false;
     const describe = (label, settled, read) => {
       if (settled.status === 'fulfilled') return read(settled.value);
 
       const reason = settled.reason;
       const message = String(reason?.message || reason);
+
+      // The stored token was rejected and has now been cleared. Surface this so
+      // the client retries — the retry re-exchanges and usually succeeds, which
+      // saves the merchant clicking Sync a second time.
+      if (reason?.code === 'INVALID_ACCESS_TOKEN') staleToken = true;
+
       const denied = reason?.code === 'SHOPIFY_ACCESS_DENIED' || isProtectedDataError(message);
       if (denied) blocked.push(label);
 
@@ -99,6 +107,13 @@ export const POST = withErrorHandling(async (request) => {
       ordersUsingCredit: orders.status === 'fulfilled' ? orders.value.withCredit : null,
       creditBalances: describe('store credit balances', balances, (v) => v.updated),
     };
+
+    if (staleToken) {
+      throw new AppError('Reconnecting to Shopify. Retrying with a fresh token.', {
+        code: 'INVALID_ACCESS_TOKEN',
+        status: 401,
+      });
+    }
 
     const needsApproval = [...new Set([...blocked, ...(blockedTopics.length ? ['webhooks'] : [])])];
 

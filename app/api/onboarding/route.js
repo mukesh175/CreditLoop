@@ -29,38 +29,71 @@ export const GET = withErrorHandling(async (request) => {
 });
 
 /** Advances onboarding and runs the initial sync on the final step. */
+/** Shopify's wording for an unapproved protected-data request. */
+function isProtectedDataError(message) {
+  const text = String(message).toLowerCase();
+  return (
+    text.includes('protected customer data') ||
+    text.includes('not approved') ||
+    text.includes('access denied')
+  );
+}
+
 export const POST = withErrorHandling(async (request) => {
   const { shop, session, userId } = await requireShop(request);
   const body = await readJson(request);
 
   if (body.action === 'sync') {
-    const shopRecord = await syncShopInfo({ shop, session });
-    const [webhooks, customers, orders, balances] = await Promise.all([
+    const shopRecord = await syncShopInfo({ shop, session }).catch(() => shop);
+
+    // Each part reports independently. One rejection must not hide the results
+    // of the others, or mask *why* it failed — a store waiting on protected
+    // customer data approval needs to be told that, not shown a blank page.
+    const [webhooks, customers, orders, balances] = await Promise.allSettled([
       registerWebhooks({ session }),
       syncCustomers({ shop: shopRecord, session, maxPages: 3 }),
       syncOrders({ shop: shopRecord, session, maxPages: 3 }),
       syncCreditBalances({ shop: shopRecord, session, limit: 50 }),
     ]);
-    const pendingApproval = webhooks
+
+    const webhookResults = webhooks.status === 'fulfilled' ? webhooks.value : [];
+    const blockedTopics = webhookResults
       .filter((w) => w.status === 'NEEDS_PROTECTED_DATA_APPROVAL')
       .map((w) => w.topic);
 
+    const blocked = [];
+    const describe = (label, settled, read) => {
+      if (settled.status === 'fulfilled') return read(settled.value);
+      const message = String(settled.reason?.message || settled.reason);
+      if (isProtectedDataError(message)) blocked.push(label);
+      return { error: isProtectedDataError(message) ? 'NEEDS_PROTECTED_DATA_APPROVAL' : message };
+    };
+
+    const sync = {
+      shop: true,
+      webhooks: webhookResults.filter(
+        (w) => w.status === 'REGISTERED' || w.status === 'ALREADY_REGISTERED'
+      ).length,
+      customers: describe('customers', customers, (v) => v.synced),
+      orders: describe('orders', orders, (v) => v.synced),
+      ordersUsingCredit: orders.status === 'fulfilled' ? orders.value.withCredit : null,
+      creditBalances: describe('store credit balances', balances, (v) => v.updated),
+    };
+
+    const needsApproval = [...new Set([...blocked, ...(blockedTopics.length ? ['webhooks'] : [])])];
+
     return ok({
-      sync: {
-        shop: true,
-        webhooks: webhooks.filter((w) => w.status === 'REGISTERED' || w.status === 'ALREADY_REGISTERED').length,
-        customers: customers.synced,
-        orders: orders.synced,
-        ordersUsingCredit: orders.withCredit,
-        creditBalances: balances.updated,
-      },
-      // Not an error — the app works, but these topics stay dormant until the
+      sync,
+      // Not an error — the app works, but this data stays empty until the
       // Partner dashboard grants protected customer data access.
-      pendingApproval: pendingApproval.length
+      pendingApproval: needsApproval.length
         ? {
-            topics: pendingApproval,
+            topics: blockedTopics,
+            blocked: needsApproval,
             message:
-              'These webhooks are waiting on protected customer data approval for your app. Request it in your Partner dashboard under App setup > Protected customer data access, then run the sync again.',
+              'Shopify is blocking ' +
+              needsApproval.join(', ') +
+              ' until your app is approved for protected customer data. Request it in your Partner dashboard under App setup > Protected customer data access, then run this sync again.',
           }
         : null,
     });

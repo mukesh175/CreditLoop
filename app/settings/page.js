@@ -25,6 +25,31 @@ function SettingsView() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [syncError, setSyncError] = useState(null);
+  const [demoBusy, setDemoBusy] = useState(null);
+  const [demoResult, setDemoResult] = useState(null);
+  const [demoError, setDemoError] = useState(null);
+
+  async function runDemo(action) {
+    setDemoBusy(action);
+    setDemoError(null);
+    setDemoResult(null);
+    try {
+      const result = await apiFetch('/api/demo', {
+        method: 'POST',
+        body: action === 'clear' ? { action: 'clear' } : {},
+      });
+      setDemoResult(
+        action === 'clear'
+          ? `Removed ${result.cleared.customers} customers, ${result.cleared.orders} orders and ${result.cleared.creditEvents} credit events.`
+          : `Created ${result.generated.customers} customers, ${result.generated.orders} orders, ${result.generated.returns} returns and ${result.generated.creditEvents} credit events.`
+      );
+      reload();
+    } catch (err) {
+      setDemoError(err.message);
+    } finally {
+      setDemoBusy(null);
+    }
+  }
 
   async function runSync() {
     setSyncing(true);
@@ -209,11 +234,24 @@ function SettingsView() {
           )}
 
           {syncResult && (
-            <div className="alert alert-success mt-3 mb-0" style={{ fontSize: 14 }}>
-              <strong className="d-block mb-1">Sync complete</strong>
-              {syncResult.sync.customers} customers · {syncResult.sync.orders} orders (
-              {syncResult.sync.ordersUsingCredit} using credit) ·{' '}
-              {syncResult.sync.creditBalances} credit balances · {syncResult.sync.webhooks} webhooks
+            <div className="alert alert-light border mt-3 mb-0" style={{ fontSize: 14 }}>
+              <strong className="d-block mb-2">Sync finished</strong>
+              <table className="cl-table mb-0" style={{ fontSize: 13.5 }}>
+                <tbody>
+                  <SyncRow label="Customers" value={syncResult.sync.customers} />
+                  <SyncRow
+                    label="Orders"
+                    value={syncResult.sync.orders}
+                    suffix={
+                      syncResult.sync.ordersUsingCredit != null
+                        ? `${syncResult.sync.ordersUsingCredit} used store credit`
+                        : null
+                    }
+                  />
+                  <SyncRow label="Credit balances" value={syncResult.sync.creditBalances} />
+                  <SyncRow label="Webhooks registered" value={syncResult.sync.webhooks} />
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -239,6 +277,53 @@ function SettingsView() {
           )}
         </div>
       </div>
+
+      {data.demoModeAvailable && (
+        <div className="cl-card mt-3" style={{ borderColor: '#f0d89a' }}>
+          <div className="cl-card-header">
+            <h2 className="cl-card-title">Demo data</h2>
+            <span className="cl-pill cl-pill-warning">Development only</span>
+          </div>
+          <div className="cl-card-body">
+            <p className="cl-source-note">
+              Generates 250 customers, 500 orders, 40 returns and 120 credit transactions so every
+              screen can be exercised without waiting for real activity. Demo rows are tagged and
+              removed together — they never mix with data from Shopify, and no store credit is
+              issued in Shopify.
+            </p>
+
+            <div className="d-flex gap-2 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-cl-secondary btn-sm"
+                onClick={() => runDemo('generate')}
+                disabled={demoBusy}
+              >
+                {demoBusy === 'generate' ? 'Generating…' : 'Generate demo data'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-cl-secondary btn-sm"
+                onClick={() => runDemo('clear')}
+                disabled={demoBusy}
+              >
+                {demoBusy === 'clear' ? 'Clearing…' : 'Clear demo data'}
+              </button>
+            </div>
+
+            {demoError && (
+              <div className="alert alert-danger mt-3 mb-0" style={{ fontSize: 14 }}>
+                {demoError}
+              </div>
+            )}
+            {demoResult && (
+              <div className="alert alert-success mt-3 mb-0" style={{ fontSize: 14 }}>
+                {demoResult}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="cl-card mt-3">
         <div className="cl-card-header">
@@ -269,6 +354,28 @@ function SettingsView() {
         </div>
       </div>
     </>
+  );
+}
+
+/** One line of the sync report: a count, or the reason it could not run. */
+function SyncRow({ label, value, suffix }) {
+  const blocked = value && typeof value === 'object' && value.error;
+  return (
+    <tr>
+      <td style={{ paddingLeft: 0 }}>{label}</td>
+      <td className="text-end" style={{ paddingRight: 0 }}>
+        {blocked ? (
+          <span className="cl-pill cl-pill-warning">
+            {value.error === 'NEEDS_PROTECTED_DATA_APPROVAL' ? 'Awaiting approval' : 'Failed'}
+          </span>
+        ) : (
+          <>
+            <strong className="cl-num">{value ?? 0}</strong>
+            {suffix && <span className="cl-source-note"> · {suffix}</span>}
+          </>
+        )}
+      </td>
+    </tr>
   );
 }
 

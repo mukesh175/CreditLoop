@@ -3,7 +3,7 @@ import { withErrorHandling, ok, readJson } from '@/lib/api/respond';
 import { requireShop } from '@/lib/shopify/auth-guard';
 import { getEntitlements } from '@/lib/billing/entitlements';
 import { recordAudit, AUDIT } from '@/lib/util/audit';
-import { SHOPIFY_SCOPES, SHOPIFY_API_VERSION } from '@/lib/config';
+import { SHOPIFY_SCOPES, SHOPIFY_API_VERSION, DEMO_MODE_ALLOWED } from '@/lib/config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,6 +32,7 @@ export const GET = withErrorHandling(async (request) => {
     entitlements,
     apiVersion: SHOPIFY_API_VERSION,
     scopes: SHOPIFY_SCOPES,
+    demoModeAvailable: DEMO_MODE_ALLOWED,
   });
 });
 

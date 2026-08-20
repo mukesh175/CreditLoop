@@ -17,6 +17,7 @@ export function ShopProvider({ children }) {
       value={{
         shop: data?.shop || null,
         entitlements: data?.entitlements || null,
+        demoModeAvailable: Boolean(data?.demoModeAvailable),
         loading,
         error,
         reload,

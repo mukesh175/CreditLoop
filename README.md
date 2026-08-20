@@ -279,6 +279,10 @@ is expected.
 npm test
 ```
 
+See [`docs/testing.md`](docs/testing.md) for the full test plan — automated
+tests, demo data for exercising every screen, and the real Shopify flows
+(including the duplicate-credit test) that only a development store can cover.
+
 The suite runs on `node --test` with no live database or store: `tests/alias-hook.mjs`
 resolves the `@/` alias and swaps in an in-memory Prisma and Shopify double, so
 the real financial code paths execute end to end. See

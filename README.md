@@ -292,6 +292,18 @@ the real financial code paths execute end to end. See
 
 ## 10. Installation and authentication
 
+### Access tokens expire
+
+Shopify no longer accepts non-expiring offline tokens on the Admin API:
+
+> [API] Non-expiring access tokens are no longer accepted for the Admin API.
+> Start using expiring offline tokens.
+
+The token exchange records `expires_in` against the session, and
+`getOfflineSession` refuses a token within 60 seconds of expiry — which sends
+the request down the token-exchange path and mints a fresh one. A rejected
+legacy token is treated the same way. Merchants never reinstall for this.
+
 ### Managed installation (default)
 
 New Shopify apps use **managed installation**: Shopify performs the install

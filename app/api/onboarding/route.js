@@ -45,16 +45,27 @@ export const POST = withErrorHandling(async (request) => {
   const body = await readJson(request);
 
   if (body.action === 'sync') {
-    const shopRecord = await syncShopInfo({ shop, session }).catch(() => shop);
+    // A stale token is cleared by the first rejected call, so re-authenticating
+    // here picks up a freshly exchanged one without a second round trip to the
+    // browser.
+    let activeSession = session;
+    const shopRecord = await syncShopInfo({ shop, session: activeSession }).catch(async (error) => {
+      if (error?.code === 'INVALID_ACCESS_TOKEN') {
+        const refreshed = await requireShop(request).catch(() => null);
+        if (refreshed) activeSession = refreshed.session;
+      }
+      return shop;
+    });
+
 
     // Each part reports independently. One rejection must not hide the results
     // of the others, or mask *why* it failed — a store waiting on protected
     // customer data approval needs to be told that, not shown a blank page.
     const [webhooks, customers, orders, balances] = await Promise.allSettled([
-      registerWebhooks({ session }),
-      syncCustomers({ shop: shopRecord, session, maxPages: 3 }),
-      syncOrders({ shop: shopRecord, session, maxPages: 3 }),
-      syncCreditBalances({ shop: shopRecord, session, limit: 50 }),
+      registerWebhooks({ session: activeSession }),
+      syncCustomers({ shop: shopRecord, session: activeSession, maxPages: 3 }),
+      syncOrders({ shop: shopRecord, session: activeSession, maxPages: 3 }),
+      syncCreditBalances({ shop: shopRecord, session: activeSession, limit: 50 }),
     ]);
 
     const webhookResults = webhooks.status === 'fulfilled' ? webhooks.value : [];

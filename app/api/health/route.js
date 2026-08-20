@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma/client';
-import { CRON_SECRET, SHOPIFY_API_VERSION } from '@/lib/config';
+import { CRON_SECRET, SHOPIFY_API_VERSION, SHOPIFY_SCOPES } from '@/lib/config';
 import { safeEqual } from '@/lib/util/crypto';
 
 export const runtime = 'nodejs';
@@ -71,8 +71,29 @@ export async function GET(request) {
 
   let shops = null;
   let migrations = null;
+  let scopeReport = null;
   try {
     shops = await prisma.shop.count();
+
+    // Which scopes the stored token actually carries. A scope listed as
+    // required but missing here means the store has not re-authorised since
+    // the scope was added — no approval will fix that, only a re-grant.
+    const installed = await prisma.shop.findMany({
+      where: { isActive: true },
+      select: { domain: true, scopes: true },
+      take: 5,
+    });
+    scopeReport = installed.map((shop) => {
+      const granted = (shop.scopes || '')
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      return {
+        shop: shop.domain,
+        granted,
+        missing: SHOPIFY_SCOPES.filter((scope) => !granted.includes(scope)),
+      };
+    });
   } catch (error) {
     migrations = 'Shop table is not queryable — migrations have probably not been applied.';
   }
@@ -86,6 +107,8 @@ export async function GET(request) {
       apiVersion: SHOPIFY_API_VERSION,
       appUrl: process.env.SHOPIFY_APP_URL || null,
       installedShops: shops,
+      requiredScopes: SHOPIFY_SCOPES,
+      ...(scopeReport ? { scopes: scopeReport } : {}),
       ...(databaseError ? { databaseError } : {}),
       ...(migrations ? { migrations } : {}),
     },

@@ -255,6 +255,25 @@ function SettingsView() {
             </div>
           )}
 
+          {syncResult?.missingScopes && (
+            <div
+              className="p-3 mt-3"
+              style={{
+                background: 'var(--cl-danger-soft)',
+                border: '1px solid #f0b4ae',
+                borderRadius: 10,
+                fontSize: 13,
+                color: 'var(--cl-danger)',
+              }}
+            >
+              <strong className="d-block mb-1">This store needs to re-authorise</strong>
+              {syncResult.missingScopes.message}
+              <div className="mt-2">
+                <code style={{ fontSize: 12 }}>{syncResult.missingScopes.scopes.join(', ')}</code>
+              </div>
+            </div>
+          )}
+
           {syncResult?.pendingApproval && (
             <div
               className="p-3 mt-3"

@@ -4,6 +4,7 @@ import { requireShop } from '@/lib/shopify/auth-guard';
 import { syncShopInfo, syncCustomers, syncOrders, syncCreditBalances } from '@/lib/credit/sync';
 import { registerWebhooks } from '@/lib/shopify/webhooks';
 import { recordAudit, AUDIT } from '@/lib/util/audit';
+import { SHOPIFY_SCOPES } from '@/lib/config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -90,10 +91,28 @@ export const POST = withErrorHandling(async (request) => {
 
     const needsApproval = [...new Set([...blocked, ...(blockedTopics.length ? ['webhooks'] : [])])];
 
+    // A scope the app asks for but the token does not carry cannot be fixed by
+    // any approval — the store has to re-authorise. Worth telling apart.
+    const granted = (shopRecord.scopes || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const missingScopes = SHOPIFY_SCOPES.filter((scope) => !granted.includes(scope));
+
     return ok({
       sync,
       // Not an error — the app works, but this data stays empty until the
       // Partner dashboard grants protected customer data access.
+      missingScopes: missingScopes.length
+        ? {
+            scopes: missingScopes,
+            message:
+              'The access token for this store does not carry ' +
+              missingScopes.join(', ') +
+              '. That is a re-authorisation, not an approval — uninstall CreditLoop from the store and open it again to grant the current scopes.',
+          }
+        : null,
+      grantedScopes: granted,
       pendingApproval: needsApproval.length
         ? {
             topics: blockedTopics,

@@ -10,7 +10,7 @@ export const metadata = {
 // URL and a working contact address for data requests.
 const OPERATOR = {
   legalName: 'Enigma NXt',
-  contactEmail: '[info@enigmadigital.in]',
+  contactEmail: 'info@enigmadigital.in',
   address: 'Kisan Nagar, No 2 Thane, Wagle I.e., Thane, Thane, Maharashtra, India, 400604',
   jurisdiction: 'India',
 };

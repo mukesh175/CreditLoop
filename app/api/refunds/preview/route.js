@@ -4,6 +4,8 @@ import { getSuggestedRefund, loadOrderForRefund } from '@/lib/refunds/store-cred
 import { recommendCredit } from '@/lib/rules/recommendation';
 import { getEntitlements } from '@/lib/billing/entitlements';
 import { round2 } from '@/lib/util/money';
+import { isDemoGid } from '@/lib/demo/identifiers';
+import { ValidationError } from '@/lib/util/errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +19,14 @@ export const dynamic = 'force-dynamic';
 export const POST = withErrorHandling(async (request) => {
   const { shop, session } = await requireShop(request);
   const body = await readJson(request);
+
+  // A demo order has no real money behind it. Refusing here keeps the refund
+  // path honest — there is no meaningful preview to show.
+  if (isDemoGid(body.orderId)) {
+    throw new ValidationError(
+      'This is a demo order. Refunds can only be previewed for real Shopify orders — clear the demo data to work with your live store.'
+    );
+  }
 
   const order = await loadOrderForRefund(session, body.orderId);
   const suggested = await getSuggestedRefund(session, body.orderId, body.refundLineItems || []);

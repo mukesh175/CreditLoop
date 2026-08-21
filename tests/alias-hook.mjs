@@ -41,6 +41,13 @@ registerHooks({
 
     if (isShopifyGraphql) return { url: shopifyDouble, shortCircuit: true };
 
+    // Next exposes `next/server` through its build tooling; bare Node needs the
+    // file. Route handlers import it for NextResponse.
+    if (specifier === 'next/server') {
+      const target = path.join(projectRoot, 'node_modules/next/server.js');
+      if (existsSync(target)) return { url: pathToFileURL(target).href, shortCircuit: true };
+    }
+
     if (specifier.startsWith('@/')) {
       const target = resolveWithExtension(path.join(projectRoot, specifier.slice(2)));
       return { url: pathToFileURL(target).href, shortCircuit: true };

@@ -4,6 +4,7 @@ import { requireShop } from '@/lib/shopify/auth-guard';
 import { adminGraphql } from '@/lib/shopify/graphql';
 import { CUSTOMER_DETAIL_QUERY } from '@/lib/shopify/queries';
 import { round2 } from '@/lib/util/money';
+import { isDemoGid } from '@/lib/demo/identifiers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,8 +18,14 @@ export const GET = withErrorHandling(async (request, { params }) => {
   const { id } = await params;
   const customerGid = decodeURIComponent(id);
 
-  const [{ data }, metric, events, attributions] = await Promise.all([
-    adminGraphql(session, CUSTOMER_DETAIL_QUERY, { id: customerGid }),
+  // Demo customers do not exist in Shopify; asking for them returns an invalid
+  // ID error. Everything shown for them comes from the generated data instead.
+  const demo = isDemoGid(customerGid);
+
+  const [detail, metric, events, attributions] = await Promise.all([
+    demo
+      ? Promise.resolve({ data: { customer: null } })
+      : adminGraphql(session, CUSTOMER_DETAIL_QUERY, { id: customerGid }),
     prisma.customerMetric.findUnique({
       where: { shopId_customerGid: { shopId: shop.id, customerGid } },
     }),
@@ -34,7 +41,13 @@ export const GET = withErrorHandling(async (request, { params }) => {
     }),
   ]);
 
-  const customer = data?.customer;
+  const customer = detail?.data?.customer;
+
+  const snapshots = demo
+    ? await prisma.customerCreditSnapshot.findMany({
+        where: { shopId: shop.id, customerGid },
+      })
+    : [];
   const totalIssued = round2(
     events.filter((e) => e.eventType === 'CREDIT').reduce((s, e) => s + Number(e.amount), 0)
   );
@@ -43,7 +56,9 @@ export const GET = withErrorHandling(async (request, { params }) => {
   );
 
   return ok({
-    // From Shopify — authoritative.
+    isDemo: demo,
+    // From Shopify — authoritative. For demo records this is generated data,
+    // flagged by isDemo so the UI never presents it as a Shopify balance.
     shopify: {
       id: customer?.id || customerGid,
       displayName: customer?.displayName || metric?.displayName || null,
@@ -51,11 +66,17 @@ export const GET = withErrorHandling(async (request, { params }) => {
       lifetimeValue: Number(customer?.amountSpent?.amount || metric?.lifetimeValue || 0),
       lifetimeValueCurrency: customer?.amountSpent?.currencyCode || metric?.currencyCode,
       marketingConsent: customer?.emailMarketingConsent?.marketingState === 'SUBSCRIBED',
-      storeCreditAccounts: (customer?.storeCreditAccounts?.nodes || []).map((a) => ({
-        id: a.id,
-        balance: Number(a.balance.amount),
-        currencyCode: a.balance.currencyCode,
-      })),
+      storeCreditAccounts: demo
+        ? snapshots.map((snapshot) => ({
+            id: snapshot.shopifyStoreCreditAccountId,
+            balance: snapshot.balance,
+            currencyCode: snapshot.currencyCode,
+          }))
+        : (customer?.storeCreditAccounts?.nodes || []).map((a) => ({
+            id: a.id,
+            balance: Number(a.balance.amount),
+            currencyCode: a.balance.currencyCode,
+          })),
       recentOrders: customer?.orders?.nodes || [],
     },
     // From CreditLoop — analytics only.

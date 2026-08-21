@@ -283,9 +283,10 @@ See [`docs/testing.md`](docs/testing.md) for the full test plan — automated
 tests, demo data for exercising every screen, and the real Shopify flows
 (including the duplicate-credit test) that only a development store can cover.
 
-The suite runs on `node --test` with no live database or store: `tests/alias-hook.mjs`
-resolves the `@/` alias and swaps in an in-memory Prisma and Shopify double, so
-the real financial code paths execute end to end. See
+99 tests run on `node --test` with no live database or store: `tests/alias-hook.mjs`
+resolves the `@/` alias and swaps in in-memory Prisma and Shopify doubles, so
+the real code paths execute end to end — including every API route, the webhook
+handlers and the cron entry points. See
 [§19](#19-app-store-submission) for the two critical financial tests.
 
 ---

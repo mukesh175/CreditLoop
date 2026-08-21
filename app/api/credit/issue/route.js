@@ -4,6 +4,7 @@ import { issueStoreCredit } from '@/lib/credit/store-credit';
 import { consumeCreditOffer } from '@/lib/billing/entitlements';
 import { ValidationError } from '@/lib/util/errors';
 import { sha256 } from '@/lib/util/crypto';
+import { isDemoGid } from '@/lib/demo/identifiers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,12 @@ export const dynamic = 'force-dynamic';
 export const POST = withErrorHandling(async (request) => {
   const { shop, session, userId } = await requireShop(request);
   const body = await readJson(request);
+
+  if (isDemoGid(body.customerId)) {
+    throw new ValidationError(
+      'This is a demo customer. Store credit can only be issued to a real Shopify customer.'
+    );
+  }
 
   if (!body.confirmed) {
     throw new ValidationError('Confirm the amount before issuing store credit.');

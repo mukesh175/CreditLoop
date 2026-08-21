@@ -11,7 +11,7 @@ flows. Use the cheapest one that actually answers your question.
 npm test
 ```
 
-59 tests, no database or Shopify store needed — a loader hook swaps in in-memory
+99 tests, no database or Shopify store needed — a loader hook swaps in in-memory
 doubles, so the real financial code paths execute end to end.
 
 | File | Covers |
@@ -25,6 +25,9 @@ doubles, so the real financial code paths execute end to end.
 | `tests/campaigns.test.js` | Consent gate — no consent, no email address, draft/paused campaigns, plan limits |
 | `tests/reconciliation.test.js` | Matching balances, mismatch logged without touching Shopify, redemptions subtracted |
 | `tests/email-sender.test.js` | Store brand as sender, header-injection attempts, quoting, fallbacks |
+| `tests/routes-smoke.test.js` | Every merchant-facing route answers without a server error; rule and campaign creation; validation refusals; demo records blocked from financial operations; cron secret enforcement |
+| `tests/webhooks.test.js` | Unsigned payloads rejected before parsing, redeliveries deduplicated, order attribution, refunds never issuing credit, uninstall clearing tokens and pausing campaigns |
+| `tests/demo-guard.test.js` | Demo identifiers never mistaken for Shopify ones |
 
 Run one file:
 

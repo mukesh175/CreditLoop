@@ -20,7 +20,14 @@ export function createFakePrisma() {
     campaignRecipient: [],
     campaignEvent: [],
     creditRule: [],
+    creditRuleCondition: [],
     shop: [],
+    shopifySession: [],
+    creditCampaign: [],
+    dailyMetric: [],
+    weeklyMetric: [],
+    webhookEvent: [],
+    notificationPreference: [],
   };
 
   let idCounter = 0;
@@ -134,6 +141,9 @@ export function createFakePrisma() {
 
   const client = { __tables: tables };
   for (const name of Object.keys(tables)) client[name] = model(name);
+  // Health checks probe the connection with a trivial query.
+  client.$queryRaw = async () => [{ '?column?': 1 }];
+  client.$disconnect = async () => {};
   client.$transaction = async (operations) =>
     Array.isArray(operations) ? Promise.all(operations) : operations(client);
   return client;

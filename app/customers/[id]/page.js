@@ -39,7 +39,13 @@ function CustomerDetail({ id }) {
           <div className="cl-card h-100">
             <div className="cl-card-header">
               <h2 className="cl-card-title">Store credit</h2>
-              <SourceBadge source="shopify" />
+              {/* Demo balances are generated, so they must not carry the
+                  "Shopify balance" badge — that badge means authoritative. */}
+              {data.isDemo ? (
+                <span className="cl-pill cl-pill-warning">Demo data</span>
+              ) : (
+                <SourceBadge source="shopify" />
+              )}
             </div>
             <div className="cl-card-body">
               {shopify.storeCreditAccounts.length ? (
@@ -129,8 +135,9 @@ function CustomerDetail({ id }) {
       </div>
 
       <p className="cl-source-note">
-        Balances shown as “Shopify balance” are read live from Shopify Store Credit, which is the
-        source of truth. CreditLoop figures are analytics derived from events this app recorded.
+        {data.isDemo
+          ? 'This customer is demo data generated for development. Nothing here comes from Shopify, and no store credit exists against it.'
+          : 'Balances shown as “Shopify balance” are read live from Shopify Store Credit, which is the source of truth. CreditLoop figures are analytics derived from events this app recorded.'}
       </p>
     </>
   );

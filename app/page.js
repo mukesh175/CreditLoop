@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/ui/AppShell';
 import { ShopProvider, useShop } from '@/components/ui/ShopProvider';
@@ -12,7 +12,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import Icon from '@/components/ui/Icon';
 import CreditPerformanceChart from '@/components/charts/CreditPerformanceChart';
 import RangePicker from '@/components/charts/RangePicker';
-import { useApi } from '@/lib/client/useApi';
+import { useApi, invalidateApiCache } from '@/lib/client/useApi';
 import { formatMoney, formatPercent } from '@/lib/util/money';
 
 function greeting() {
@@ -38,6 +38,11 @@ function Dashboard({ onAlerts }) {
 
   const metrics = overview.data?.metrics;
   const alerts = overview.data?.alerts || [];
+
+  // Feed the sidebar badge from the response already loaded here.
+  useEffect(() => {
+    onAlerts?.(alerts.length);
+  }, [alerts.length, onAlerts]);
   const currency = metrics?.currencyCode || shop?.currencyCode || 'USD';
   const storeName = shop?.name || shop?.domain?.replace('.myshopify.com', '') || 'there';
 
@@ -324,19 +329,21 @@ function Dashboard({ onAlerts }) {
 
 function Shell() {
   const { shop, reload } = useShop();
-  const alerts = useApi('/api/analytics/overview?range=30d');
+  // The dashboard already loads the overview; the badge reads the same cached
+  // response rather than issuing a second identical request.
+  const [alertCount, setAlertCount] = useState(0);
 
   return (
     <AppShell
       shop={shop}
       demoMode={shop?.demoMode}
-      badges={{ alerts: alerts.data?.alerts?.length || 0 }}
+      badges={{ alerts: alertCount }}
       onSynced={() => {
+        invalidateApiCache('/api/');
         reload?.();
-        alerts.reload?.();
       }}
     >
-      <Dashboard />
+      <Dashboard onAlerts={setAlertCount} />
     </AppShell>
   );
 }

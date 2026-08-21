@@ -169,6 +169,17 @@ shopify app deploy
 
 Both must include `?sslmode=require`.
 
+**Add pooling parameters to `DATABASE_URL`.** Without them each serverless
+invocation opens its own connection, which is the single biggest source of slow
+dashboard loads:
+
+```
+postgresql://…-pooler.…neon.tech/creditloop?sslmode=require&pgbouncer=true&connection_limit=1
+```
+
+Neon's free tier also suspends an idle database, so the first request after a
+quiet period pays a few seconds to wake it. Paid tiers stay warm.
+
 ---
 
 ## 7. Prisma setup

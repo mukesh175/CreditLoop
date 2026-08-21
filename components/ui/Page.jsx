@@ -2,7 +2,7 @@
 
 import AppShell from './AppShell';
 import { ShopProvider, useShop } from './ShopProvider';
-import { useApi } from '@/lib/client/useApi';
+import { useApi, invalidateApiCache } from '@/lib/client/useApi';
 
 function Inner({ children }) {
   const { shop, reload } = useShop();
@@ -15,6 +15,8 @@ function Inner({ children }) {
       demoMode={shop?.demoMode}
       badges={{ alerts: alerts.data?.alerts?.length || 0 }}
       onSynced={() => {
+        // A sync changes everything, so the whole cache goes.
+        invalidateApiCache('/api/');
         reload?.();
         alerts.reload?.();
       }}

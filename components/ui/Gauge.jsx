@@ -28,15 +28,22 @@ export default function Gauge({ value = 0, label, caption, size = 168, loading =
   }
 
   return (
-    <div className="cl-gauge" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label}: ${formatPercent(pct)}`}>
-        <g transform={`rotate(135 ${size / 2} ${size / 2})`}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="var(--cl-track)"
+    <div className="cl-gauge-wrap">
+      <div className="cl-gauge" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          role="img"
+          aria-label={`${label}: ${formatPercent(pct)}`}
+        >
+          <g transform={`rotate(135 ${size / 2} ${size / 2})`}>
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="var(--cl-track)"
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={`${arc} ${circumference}`}
@@ -55,12 +62,14 @@ export default function Gauge({ value = 0, label, caption, size = 168, loading =
         </g>
       </svg>
 
-      <div className="cl-gauge-inner">
-        <div className="cl-gauge-value">{Math.round(pct)}%</div>
-        <div className="cl-gauge-label">{label}</div>
-        <span className={`cl-pill cl-pill-${band.tone} mt-1`}>{band.label}</span>
+        {/* Only the figure sits inside the dial — anything more crowds the arc. */}
+        <div className="cl-gauge-inner">
+          <div className="cl-gauge-value">{Math.round(pct)}%</div>
+          <div className="cl-gauge-label">{label}</div>
+        </div>
       </div>
 
+      <span className={`cl-pill cl-pill-${band.tone}`}>{band.label}</span>
       {caption && <div className="cl-gauge-caption">{caption}</div>}
     </div>
   );

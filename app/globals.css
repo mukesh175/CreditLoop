@@ -181,7 +181,10 @@ h1, h2, h3, h4, h5, h6, .cl-heading {
 .cl-kpi-delta.flat { color: var(--cl-muted); }
 
 /* Gauge ------------------------------------------------------------------- */
-.cl-gauge { position: relative; display: grid; place-items: center; margin: 0 auto; }
+/* The dial keeps a fixed box; the label and caption stack beneath it, so a long
+   caption can never overlap whatever follows. */
+.cl-gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cl-gauge { position: relative; display: grid; place-items: center; }
 .cl-gauge-inner {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center; gap: 1px;
@@ -194,7 +197,10 @@ h1, h2, h3, h4, h5, h6, .cl-heading {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em;
   color: var(--cl-muted); font-weight: 650;
 }
-.cl-gauge-caption { margin-top: 8px; font-size: 12.5px; color: var(--cl-muted); text-align: center; }
+.cl-gauge-caption {
+  font-size: 12.5px; color: var(--cl-muted); text-align: center;
+  max-width: 240px; line-height: 1.5;
+}
 
 /* Pills ------------------------------------------------------------------- */
 .cl-pill {

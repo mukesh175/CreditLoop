@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma/client';
 import { CRON_SECRET, SHOPIFY_API_VERSION, SHOPIFY_SCOPES } from '@/lib/config';
 import { safeEqual } from '@/lib/util/crypto';
+import { findMissingScopes, expandGrantedScopes } from '@/lib/shopify/scopes';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,17 +84,13 @@ export async function GET(request) {
       select: { domain: true, scopes: true },
       take: 5,
     });
-    scopeReport = installed.map((shop) => {
-      const granted = (shop.scopes || '')
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-      return {
-        shop: shop.domain,
-        granted,
-        missing: SHOPIFY_SCOPES.filter((scope) => !granted.includes(scope)),
-      };
-    });
+    scopeReport = installed.map((shop) => ({
+      shop: shop.domain,
+      // Raw grant, plus what it implies — Shopify omits implied read scopes.
+      granted: (shop.scopes || '').split(',').map((entry) => entry.trim()).filter(Boolean),
+      effective: [...expandGrantedScopes(shop.scopes)],
+      missing: findMissingScopes(SHOPIFY_SCOPES, shop.scopes),
+    }));
   } catch (error) {
     migrations = 'Shop table is not queryable — migrations have probably not been applied.';
   }

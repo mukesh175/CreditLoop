@@ -5,6 +5,7 @@ import { syncShopInfo, syncCustomers, syncOrders, syncCreditBalances } from '@/l
 import { registerWebhooks } from '@/lib/shopify/webhooks';
 import { recordAudit, AUDIT } from '@/lib/util/audit';
 import { SHOPIFY_SCOPES } from '@/lib/config';
+import { findMissingScopes, expandGrantedScopes } from '@/lib/shopify/scopes';
 import { AppError } from '@/lib/util/errors';
 
 export const runtime = 'nodejs';
@@ -117,13 +118,12 @@ export const POST = withErrorHandling(async (request) => {
 
     const needsApproval = [...new Set([...blocked, ...(blockedTopics.length ? ['webhooks'] : [])])];
 
-    // A scope the app asks for but the token does not carry cannot be fixed by
-    // any approval — the store has to re-authorise. Worth telling apart.
-    const granted = (shopRecord.scopes || '')
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-    const missingScopes = SHOPIFY_SCOPES.filter((scope) => !granted.includes(scope));
+    // A scope the app asks for but the grant does not cover cannot be fixed by
+    // any approval — the store has to re-authorise. Implied scopes count: a
+    // write grant covers the matching read, and Shopify omits the read from the
+    // list it returns.
+    const granted = [...expandGrantedScopes(shopRecord.scopes)];
+    const missingScopes = findMissingScopes(SHOPIFY_SCOPES, shopRecord.scopes);
 
     return ok({
       sync,

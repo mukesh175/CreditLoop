@@ -20,6 +20,7 @@ function OpportunitiesView() {
   return (
     <>
       <PageHeader
+        icon="returns"
         title="Return → Credit"
         subtitle="Orders eligible for a store-credit offer. Nothing is issued until you confirm."
       />

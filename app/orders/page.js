@@ -20,6 +20,7 @@ function OrdersView() {
   return (
     <>
       <PageHeader
+        icon="orders"
         title="Orders"
         subtitle="Orders CreditLoop has seen, and how much store credit each one used."
         actions={

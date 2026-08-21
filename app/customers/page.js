@@ -33,7 +33,7 @@ function CustomersView() {
 
   return (
     <>
-      <PageHeader title="Customers" subtitle="Who holds credit, and who is spending it." />
+      <PageHeader icon="customers" title="Customers" subtitle="Who holds credit, and who is spending it." />
 
       <div className="d-flex flex-wrap gap-2 mb-3">
         <form

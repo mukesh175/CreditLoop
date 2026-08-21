@@ -34,6 +34,7 @@ function AnalyticsView() {
   return (
     <>
       <PageHeader
+        icon="analytics"
         title="Analytics"
         subtitle="What happened after you issued store credit."
         actions={

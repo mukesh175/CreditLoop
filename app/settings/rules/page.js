@@ -34,6 +34,7 @@ function RulesView() {
   return (
     <>
       <PageHeader
+        icon="rules"
         title="Credit rules"
         subtitle="Rules decide how much bonus credit a return is worth. They never stack — the highest-priority match wins."
         actions={

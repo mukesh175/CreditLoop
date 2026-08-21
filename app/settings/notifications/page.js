@@ -84,7 +84,7 @@ function NotificationSettings() {
 
   return (
     <>
-      <PageHeader title="Notifications" subtitle="What CreditLoop sends, and to whom." />
+      <PageHeader icon="notifications" title="Notifications" subtitle="What CreditLoop sends, and to whom." />
 
       {error && <div className="alert alert-danger">{error}</div>}
       {saved && <div className="alert alert-success">Notification settings saved.</div>}

@@ -35,6 +35,7 @@ function ReturnsView() {
   return (
     <>
       <PageHeader
+        icon="returns"
         title="Returns"
         subtitle="Every return, and what happened to the refund."
         actions={

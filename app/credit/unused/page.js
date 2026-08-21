@@ -26,6 +26,7 @@ function UnusedView() {
   return (
     <>
       <PageHeader
+        icon="credit"
         title="Unused store credit"
         subtitle="Credit sitting idle is the clearest retention opportunity you have."
         actions={

@@ -34,6 +34,7 @@ function EmailSettings() {
   return (
     <>
       <PageHeader
+        icon="email"
         title="Customer emails"
         subtitle="The messages CreditLoop can send on your store's behalf."
       />

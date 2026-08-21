@@ -26,6 +26,7 @@ function CreditView() {
   return (
     <>
       <PageHeader
+        icon="credit"
         title="Credit"
         subtitle="Outstanding store credit and what it is turning into."
         actions={

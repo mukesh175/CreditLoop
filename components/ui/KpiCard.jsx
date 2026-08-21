@@ -1,4 +1,5 @@
 import { formatMoney, formatPercent } from '@/lib/util/money';
+import Icon from './Icon';
 
 /**
  * A single KPI. `change` is null when there is no comparable prior period —
@@ -12,13 +13,15 @@ export default function KpiCard({
   format = 'money',
   hint,
   loading,
+  accent,
 }) {
   if (loading) {
     return (
       <div className="cl-card h-100">
         <div className="cl-card-body">
-          <div className="cl-skeleton mb-2" style={{ height: 12, width: '55%' }} />
-          <div className="cl-skeleton" style={{ height: 28, width: '75%' }} />
+          <div className="cl-skeleton mb-3" style={{ height: 10, width: '55%' }} />
+          <div className="cl-skeleton mb-2" style={{ height: 26, width: '72%' }} />
+          <div className="cl-skeleton" style={{ height: 10, width: '38%' }} />
         </div>
       </div>
     );
@@ -34,15 +37,35 @@ export default function KpiCard({
   const direction = change == null ? 'flat' : change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
 
   return (
-    <div className="cl-card h-100">
+    <div className="cl-card cl-card-hover h-100">
       <div className="cl-card-body">
-        <div className="cl-kpi-label mb-2">{label}</div>
-        <div className="cl-kpi-value cl-num">{display}</div>
-        <div className="d-flex align-items-center gap-2 mt-1">
-          {change != null && (
+        <div className="d-flex align-items-center gap-2 mb-2">
+          {accent && (
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 3,
+                background: accent,
+                display: 'inline-block',
+              }}
+            />
+          )}
+          <span className="cl-kpi-label">{label}</span>
+        </div>
+
+        <div className="cl-kpi-value">{display}</div>
+
+        <div className="d-flex align-items-center gap-2 mt-2" style={{ minHeight: 18 }}>
+          {change != null ? (
             <span className={`cl-kpi-delta ${direction}`}>
-              {change > 0 ? '↑' : change < 0 ? '↓' : '→'} {Math.abs(change)}%
+              {direction !== 'flat' && (
+                <Icon name={direction === 'up' ? 'arrowUp' : 'arrowDown'} size={13} strokeWidth={2.4} />
+              )}
+              {Math.abs(change)}%
             </span>
+          ) : (
+            <span className="cl-kpi-delta flat">no prior period</span>
           )}
           {hint && <span className="cl-source-note">{hint}</span>}
         </div>

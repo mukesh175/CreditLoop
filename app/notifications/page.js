@@ -15,6 +15,7 @@ function NotificationsView() {
   return (
     <>
       <PageHeader
+        icon="notifications"
         title="Notifications"
         subtitle="What needs your attention, and what CreditLoop has sent."
       />

@@ -40,6 +40,7 @@ function BillingView() {
   return (
     <>
       <PageHeader
+        icon="billing"
         title="Billing"
         subtitle="Billed through Shopify. CreditLoop never handles your payment details."
       />

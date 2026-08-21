@@ -1,42 +1,40 @@
 import Link from 'next/link';
 import { formatMoney } from '@/lib/util/money';
+import Icon from './Icon';
 
-const TONE_CLASS = {
-  info: 'cl-pill-muted',
-  success: 'cl-pill-green',
-  warning: 'cl-pill-warning',
-  danger: 'cl-pill-danger',
+const TONE = {
+  danger: { bar: 'cl-alert-bar-danger', pill: 'cl-pill-danger', label: 'Critical' },
+  warning: { bar: 'cl-alert-bar-warning', pill: 'cl-pill-warning', label: 'Warning' },
+  success: { bar: 'cl-alert-bar-success', pill: 'cl-pill-green', label: 'Positive' },
+  info: { bar: 'cl-alert-bar-info', pill: 'cl-pill-info', label: 'Info' },
 };
 
 export default function AlertList({ alerts = [] }) {
   if (!alerts.length) return null;
+
   return (
-    <div className="d-flex flex-column gap-2">
-      {alerts.map((alert) => (
-        <Link
-          key={alert.id}
-          href={alert.href || '#'}
-          className="cl-card text-decoration-none"
-          style={{ color: 'inherit' }}
-        >
-          <div className="cl-card-body py-3 d-flex align-items-center justify-content-between gap-3">
-            <div className="d-flex align-items-center gap-3 flex-wrap">
-              <span className={`cl-pill ${TONE_CLASS[alert.tone] || 'cl-pill-muted'}`}>
-                {alert.title}
-              </span>
-              <span style={{ fontSize: 14 }}>
+    <div>
+      {alerts.map((alert) => {
+        const tone = TONE[alert.tone] || TONE.info;
+        return (
+          <Link key={alert.id} href={alert.href || '#'} className="cl-alert-row">
+            <span className={`cl-alert-bar ${tone.bar}`} />
+            <div className="flex-grow-1 min-width-0">
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <span className={`cl-pill ${tone.pill}`}>{tone.label}</span>
+                <span className="cl-alert-title">{alert.title}</span>
+              </div>
+              <div className="cl-alert-body">
                 {alert.amount != null && (
-                  <strong className="cl-num">
-                    {formatMoney(alert.amount, alert.currencyCode)}{' '}
-                  </strong>
+                  <strong className="cl-num">{formatMoney(alert.amount, alert.currencyCode)} </strong>
                 )}
                 {alert.message}
-              </span>
+              </div>
             </div>
-            <span className="cl-source-note">View →</span>
-          </div>
-        </Link>
-      ))}
+            <Icon name="chevron" size={16} style={{ color: 'var(--cl-faint)', marginTop: 4 }} />
+          </Link>
+        );
+      })}
     </div>
   );
 }

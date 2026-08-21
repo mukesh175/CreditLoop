@@ -99,7 +99,7 @@ function SettingsView() {
 
   return (
     <>
-      <PageHeader title="General settings" subtitle="Store defaults and app permissions." />
+      <PageHeader icon="settings" title="General settings" subtitle="Store defaults and app permissions." />
 
       <div className="row g-3">
         <div className="col-12 col-lg-7">

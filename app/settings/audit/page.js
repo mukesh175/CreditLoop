@@ -37,6 +37,7 @@ function AuditView() {
   return (
     <>
       <PageHeader
+        icon="audit"
         title="Audit log"
         subtitle="Every rule change, credit issuance and refund, with its Shopify transaction."
       />

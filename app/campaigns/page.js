@@ -60,6 +60,7 @@ function CampaignsView() {
   return (
     <>
       <PageHeader
+        icon="campaigns"
         title="Campaigns"
         subtitle="Remind customers about credit they already hold, and win back the ones who drifted."
         actions={

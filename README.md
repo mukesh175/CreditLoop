@@ -169,9 +169,27 @@ shopify app deploy
 
 Both must include `?sslmode=require`.
 
+**Put the functions in the same region as the database.** This matters more
+than anything else for perceived speed. A dashboard load makes roughly a dozen
+queries; if the function and the database are on different continents, each one
+pays ~200ms of round-trip latency and the page takes seconds.
+
+`vercel.json` pins `regions: ["sin1"]` to match a Neon database in
+`ap-southeast-1`. **If your database is elsewhere, change it** — the region code
+is in your Neon connection string:
+
+| Neon region | Vercel region |
+| --- | --- |
+| `ap-southeast-1` | `sin1` |
+| `us-east-1` | `iad1` |
+| `us-east-2` | `cle1` |
+| `us-west-2` | `pdx1` |
+| `eu-central-1` | `fra1` |
+| `eu-west-2` | `lhr1` |
+| `ap-southeast-2` | `syd1` |
+
 **Add pooling parameters to `DATABASE_URL`.** Without them each serverless
-invocation opens its own connection, which is the single biggest source of slow
-dashboard loads:
+invocation opens its own connection:
 
 ```
 postgresql://…-pooler.…neon.tech/creditloop?sslmode=require&pgbouncer=true&connection_limit=1

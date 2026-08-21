@@ -1,4 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "//": "Functions run in the same region as the database. Neon is in ap-southeast-1 (Singapore), so sin1 keeps each query on a local hop instead of crossing the Pacific — the app makes a dozen queries per dashboard load, so the round-trip distance dominates everything else. If you move the database, move this too.",
+  "regions": ["sin1"],
+
   "crons": [
     { "path": "/api/cron/daily", "schedule": "0 9 * * *" }
   ]
